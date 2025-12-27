@@ -1,50 +1,50 @@
 # AgriVision Pro 🌾🚁
 
-یک سیستم جامع مدیریت و کنترل پهپاد کشاورزی با قابلیت پردازش تصویر هوشمند و تشخیص بیماری‌های گیاهی
+A comprehensive agricultural drone management and control system with intelligent image processing and plant disease detection capabilities.
 
-## 📋 فهرست مطالب
+## 📋 Table of Contents
 
-- [درباره پروژه](#درباره-پروژه)
-- [ویژگی‌ها](#ویژگیها)
-- [معماری سیستم](#معماری-سیستم)
-- [پیش‌نیازها](#پیشنیازها)
-- [نصب و راه‌اندازی](#نصب-و-راهاندازی)
-- [استفاده](#استفاده)
-- [ساختار پروژه](#ساختار-پروژه)
-- [تکنولوژی‌ها](#تکنولوژیها)
+- [About](#about)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Technologies](#technologies)
 
-## 🎯 درباره پروژه
+## 🎯 About
 
-AgriVision Pro یک پلتفرم یکپارچه برای مدیریت پهپادهای کشاورزی است که با استفاده از هوش مصنوعی و یادگیری عمیق، قادر به تشخیص و تحلیل بیماری‌های گیاهی، نظارت بر سلامت محصولات و کنترل دقیق پهپاد است.
+AgriVision Pro is an integrated platform for managing agricultural drones that uses artificial intelligence and deep learning to detect and analyze plant diseases, monitor crop health, and provide precise drone control.
 
-### مزایای استفاده از AgriVision Pro:
+### Key Benefits:
 
-- **نظارت هوشمند**: تشخیص خودکار بیماری‌ها و مشکلات گیاهی با استفاده از YOLOv8
-- **کنترل دقیق**: مدیریت کامل پرواز پهپاد از طریق پروتکل MAVLink
-- **رابط کاربری مدرن**: داشبورد تعاملی و کاربرپسند برای مانیتورینگ لحظه‌ای
-- **پردازش بلادرنگ**: تحلیل تصاویر به صورت real-time و ارائه نتایج فوری
+- **Smart Monitoring**: Automatic detection of plant diseases and issues using YOLOv8
+- **Precise Control**: Complete flight management via MAVLink protocol
+- **Modern UI**: Interactive and user-friendly dashboard for real-time monitoring
+- **Real-time Processing**: Live image analysis with instant results
 
-## ✨ ویژگی‌ها
+## ✨ Features
 
 ### Backend (FastAPI + Python)
 
-- 🔌 **اتصال MAVLink**: ارتباط مستقیم با پهپادهای سازگار با پروتکل MAVLink
-- 🎯 **کنترل پرواز**: امکان ARM/DISARM، تغییر حالت پرواز و دستورات حرکتی
-- 📊 **دریافت Telemetry**: مانیتورینگ لحظه‌ای موقعیت، ارتفاع، سرعت و سلامت سیستم
-- 🤖 **تشخیص هوشمند**: تحلیل تصاویر با مدل YOLOv8 برای شناسایی بیماری‌ها
-- 🖼️ **پردازش تصویر**: پردازش و تحلیل تصاویر دریافتی از دوربین پهپاد
-- 📡 **API RESTful**: رابط‌های برنامه‌نویسی استاندارد و مستند
+- 🔌 **MAVLink Integration**: Direct communication with MAVLink-compatible drones
+- 🎯 **Flight Control**: ARM/DISARM capabilities, flight mode switching, and movement commands
+- 📊 **Telemetry Data**: Real-time monitoring of position, altitude, speed, and system health
+- 🤖 **Intelligent Detection**: Image analysis using YOLOv8 model for disease identification
+- 🖼️ **Image Processing**: Processing and analysis of images from drone camera
+- 📡 **RESTful API**: Standard and documented programming interfaces
 
 ### Frontend (React + TailwindCSS)
 
-- 🎨 **داشبورد تعاملی**: نمایش اطلاعات telemetry به صورت real-time
-- 🗺️ **نقشه پرواز**: نمایش موقعیت و مسیر پهپاد روی نقشه
-- 📸 **نمایش تصاویر**: مشاهده تصاویر پردازش‌شده و نتایج تشخیص
-- 🎮 **کنترل پنل**: امکان کنترل کامل پهپاد از طریق رابط گرافیکی
-- 📈 **نمودارها و آمار**: تحلیل داده‌ها و نمایش روندها
-- 🌓 **حالت Dark Mode**: رابط کاربری سازگار با شب و روز
+- 🎨 **Interactive Dashboard**: Real-time telemetry data visualization
+- 🗺️ **Flight Map**: Display drone position and path on map
+- 📸 **Image Display**: View processed images and detection results
+- 🎮 **Control Panel**: Complete drone control through graphical interface
+- 📈 **Charts & Statistics**: Data analysis and trend visualization
+- 🌓 **Dark Mode**: Day and night compatible user interface
 
-## 🏗️ معماری سیستم
+## 🏗️ System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -72,7 +72,7 @@ AgriVision Pro یک پلتفرم یکپارچه برای مدیریت پهپاد
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 📦 پیش‌نیازها
+## 📦 Prerequisites
 
 ### Backend:
 - Python 3.11+
@@ -80,102 +80,102 @@ AgriVision Pro یک پلتفرم یکپارچه برای مدیریت پهپاد
 
 ### Frontend:
 - Node.js 16+
-- npm یا yarn
+- npm or yarn
 
-### پهپاد:
-- Flight controller سازگار با ArduPilot/PX4
-- اتصال MAVLink (Serial/USB/Network)
+### Drone:
+- ArduPilot/PX4 compatible flight controller
+- MAVLink connection (Serial/USB/Network)
 
-## 🚀 نصب و راه‌اندازی
+## 🚀 Installation
 
-### 1. کلون کردن پروژه
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/amirtaha-aos/agrivision-pro.git
 cd agrivision-pro
 ```
 
-### 2. راه‌اندازی Backend
+### 2. Setup Backend
 
 ```bash
-# رفتن به پوشه backend
+# Navigate to backend directory
 cd backend
 
-# ساخت محیط مجازی
+# Create virtual environment
 python3 -m venv venv
 
-# فعال‌سازی محیط مجازی
-# در macOS/Linux:
+# Activate virtual environment
+# On macOS/Linux:
 source venv/bin/activate
-# در Windows:
+# On Windows:
 venv\Scripts\activate
 
-# نصب پکیج‌ها
+# Install dependencies
 pip install -r requirements.txt
 
-# اجرای سرور
+# Run the server
 uvicorn mavlink_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. راه‌اندازی Frontend
+### 3. Setup Frontend
 
 ```bash
-# رفتن به پوشه dashboard (در ترمینال جدید)
+# Navigate to dashboard directory (in a new terminal)
 cd dashboard
 
-# نصب dependencies
+# Install dependencies
 npm install
 
-# اجرای برنامه
+# Run the application
 npm start
 ```
 
-برنامه روی `http://localhost:3000` در دسترس خواهد بود.
+The application will be available at `http://localhost:3000`.
 
-## 💡 استفاده
+## 💡 Usage
 
-### اتصال به پهپاد
+### Connecting to Drone
 
-1. پهپاد را به کامپیوتر متصل کنید (USB/Serial)
-2. در کد `backend/mavlink_api.py`، آدرس اتصال را تنظیم کنید:
+1. Connect the drone to your computer (USB/Serial)
+2. In `backend/mavlink_api.py`, configure the connection string:
    ```python
-   connection_string = "/dev/ttyUSB0"  # یا COM port در Windows
-   # یا برای شبیه‌ساز:
+   connection_string = "/dev/ttyUSB0"  # or COM port on Windows
+   # Or for simulator:
    connection_string = "udp:127.0.0.1:14550"
    ```
 
-### کنترل پهپاد
+### Drone Control
 
-از طریق داشبورد می‌توانید:
-- وضعیت پهپاد را مشاهده کنید (باتری، GPS، ارتفاع)
-- پهپاد را ARM/DISARM کنید
-- حالت پرواز را تغییر دهید (GUIDED, AUTO, LOITER, RTL)
-- دستورات حرکتی ارسال کنید
+From the dashboard you can:
+- Monitor drone status (battery, GPS, altitude)
+- ARM/DISARM the drone
+- Change flight modes (GUIDED, AUTO, LOITER, RTL)
+- Send movement commands
 
-### پردازش تصویر
+### Image Processing
 
-1. تصویر را از طریق API آپلود کنید
-2. سیستم به صورت خودکار تحلیل می‌کند
-3. نتایج شامل موارد شناسایی‌شده و میزان اطمینان نمایش داده می‌شود
+1. Upload an image via API
+2. System automatically analyzes it
+3. Results include detected items and confidence scores
 
-## 📁 ساختار پروژه
+## 📁 Project Structure
 
 ```
 agrivision-pro/
 ├── backend/
-│   ├── mavlink_api.py          # API اصلی MAVLink
-│   ├── image_processor.py      # پردازشگر تصویر و YOLOv8
-│   ├── requirements.txt        # وابستگی‌های Python
-│   └── yolov8n.pt             # مدل YOLOv8
+│   ├── mavlink_api.py          # Main MAVLink API
+│   ├── image_processor.py      # Image processor and YOLOv8
+│   ├── requirements.txt        # Python dependencies
+│   └── yolov8n.pt             # YOLOv8 model
 │
 ├── dashboard/
-│   ├── public/                 # فایل‌های استاتیک
+│   ├── public/                 # Static files
 │   ├── src/
-│   │   ├── api/               # کلاینت‌های API
+│   │   ├── api/               # API clients
 │   │   │   ├── config.js
 │   │   │   ├── mavlink.js
 │   │   │   └── imageProcessor.js
-│   │   ├── AgriculturalDroneDashboard.jsx  # کامپوننت اصلی
+│   │   ├── AgriculturalDroneDashboard.jsx  # Main component
 │   │   └── ...
 │   ├── package.json
 │   └── tailwind.config.js
@@ -184,65 +184,65 @@ agrivision-pro/
 └── README.md
 ```
 
-## 🛠️ تکنولوژی‌ها
+## 🛠️ Technologies
 
 ### Backend:
-- **FastAPI**: فریمورک وب مدرن و سریع
-- **pymavlink**: کتابخانه پروتکل MAVLink
-- **ultralytics (YOLOv8)**: مدل تشخیص اشیاء
-- **OpenCV**: پردازش تصویر
-- **Pillow**: کار با تصاویر
+- **FastAPI**: Modern and fast web framework
+- **pymavlink**: MAVLink protocol library
+- **ultralytics (YOLOv8)**: Object detection model
+- **OpenCV**: Image processing
+- **Pillow**: Image manipulation
 
 ### Frontend:
-- **React**: کتابخانه UI
-- **TailwindCSS**: فریمورک CSS
-- **Lucide React**: آیکون‌ها
+- **React**: UI library
+- **TailwindCSS**: CSS framework
+- **Lucide React**: Icons
 - **Axios**: HTTP client
 
-### پروتکل‌ها:
-- **MAVLink**: ارتباط با پهپاد
-- **REST API**: ارتباط Frontend-Backend
+### Protocols:
+- **MAVLink**: Drone communication
+- **REST API**: Frontend-Backend communication
 
-## 🔧 تنظیمات پیشرفته
+## 🔧 Advanced Configuration
 
-### تغییر پورت Backend
+### Changing Backend Port
 
-در فایل `dashboard/src/api/config.js`:
+In `dashboard/src/api/config.js`:
 ```javascript
 export const API_BASE_URL = 'http://localhost:8000';
 ```
 
-### تنظیم مدل YOLOv8
+### Configuring YOLOv8 Model
 
-می‌توانید مدل دلخواه خود را در `backend/image_processor.py` بارگذاری کنید:
+You can load your custom model in `backend/image_processor.py`:
 ```python
 self.model = YOLO('path/to/your/model.pt')
 ```
 
-## 📝 یادداشت‌ها
+## 📝 Notes
 
-- برای استفاده در محیط production، حتماً از HTTPS استفاده کنید
-- کلیدهای امنیتی را در فایل‌های `.env` نگهداری کنید
-- قبل از پرواز واقعی، سیستم را با شبیه‌ساز تست کنید
+- For production use, always use HTTPS
+- Store security keys in `.env` files
+- Test the system with a simulator before real flight
 
-## 🤝 مشارکت
+## 🤝 Contributing
 
-برای مشارکت در این پروژه:
+To contribute to this project:
 
-1. Fork کنید
-2. Branch جدید بسازید (`git checkout -b feature/AmazingFeature`)
-3. تغییرات را commit کنید (`git commit -m 'Add some AmazingFeature'`)
-4. Push کنید (`git push origin feature/AmazingFeature`)
-5. Pull Request باز کنید
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📄 لایسنس
+## 📄 License
 
-این پروژه تحت لایسنس MIT منتشر شده است.
+This project is released under the MIT License.
 
-## 📧 تماس
+## 📧 Contact
 
-برای سوالات و پیشنهادات، لطفاً Issue باز کنید.
+For questions and suggestions, please open an Issue.
 
 ---
 
-**ساخته شده با ❤️ برای کشاورزی هوشمند**
+**Built with ❤️ for Smart Agriculture**
