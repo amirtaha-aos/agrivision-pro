@@ -84,11 +84,18 @@ const getRecommendedFlightAltitude = (canopyHeight) => {
   return Math.min(Math.max(raw, 15), 80);
 };
 
-const AgriculturalDroneDashboard = () => {
+const AgriculturalDroneDashboard = ({ darkMode = false, t = (key) => key }) => {
+  // Dark mode class variables
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-green-50';
+  const cardBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
+  const textClass = darkMode ? 'text-gray-100' : 'text-gray-800';
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-300';
+  const inputBgClass = darkMode ? 'bg-gray-700 text-white' : 'bg-white';
+
   const [showSplash, setShowSplash] = useState(true);
   const [typewriterText, setTypewriterText] = useState('');
   const [showDashboard, setShowDashboard] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkModeInternal, setDarkModeInternal] = useState(darkMode);
   const [activeTab, setActiveTab] = useState('mission'); // mission, telemetry, flight, analysis, camera
 
   // Mission config
@@ -132,11 +139,14 @@ const AgriculturalDroneDashboard = () => {
     status: '—',
   });
 
+  // Use internal or prop darkMode
+  const activeDarkMode = darkMode || darkModeInternal;
+
   // =========================
   // Splash typewriter
   // =========================
   useEffect(() => {
-    const text = 'Modern Farming';
+    const text = t('modern_farming');
     let index = 0;
     const timer = setInterval(() => {
       if (index <= text.length) {
@@ -151,7 +161,7 @@ const AgriculturalDroneDashboard = () => {
       }
     }, 150);
     return () => clearInterval(timer);
-  }, []);
+  }, [t]);
 
   // =========================
   // Telemetry WebSocket (real backend data)
@@ -318,7 +328,7 @@ const AgriculturalDroneDashboard = () => {
       }
     } catch (error) {
       console.error('Failed to start mission:', error);
-      alert('Error talking to Mission API (port 8000) or SITL. Check the backend terminal.');
+      alert(t('error_mission_api'));
     }
   };
 
@@ -338,9 +348,9 @@ const AgriculturalDroneDashboard = () => {
   const handleArm = async () => {
     try {
       await mavlinkAPI.arm();
-      alert('Drone armed.');
+      alert(t('drone_armed'));
     } catch (e) {
-      alert('Error while arming: ' + (e.response?.data?.detail || e.message));
+      alert(t('error_arming') + ': ' + (e.response?.data?.detail || e.message));
     }
   };
 
@@ -348,27 +358,27 @@ const AgriculturalDroneDashboard = () => {
     try {
       const alt = flightData?.altitude || recommendedAltitude || 10;
       await mavlinkAPI.takeoff(alt);
-      alert(`Takeoff command sent to ${alt} m.`);
+      alert(t('takeoff_command_sent') + ` ${alt} m.`);
     } catch (e) {
-      alert('Error while takeoff: ' + (e.response?.data?.detail || e.message));
+      alert(t('error_takeoff') + ': ' + (e.response?.data?.detail || e.message));
     }
   };
 
   const handleLand = async () => {
     try {
       await mavlinkAPI.land();
-      alert('Land command sent.');
+      alert(t('land_command_sent'));
     } catch (e) {
-      alert('Error while landing: ' + (e.response?.data?.detail || e.message));
+      alert(t('error_landing') + ': ' + (e.response?.data?.detail || e.message));
     }
   };
 
   const handleRTL = async () => {
     try {
       await mavlinkAPI.returnToLaunch();
-      alert('RTL (Return To Launch) command sent.');
+      alert(t('rtl_command_sent'));
     } catch (e) {
-      alert('Error while RTL: ' + (e.response?.data?.detail || e.message));
+      alert(t('error_rtl') + ': ' + (e.response?.data?.detail || e.message));
     }
   };
 
@@ -386,7 +396,7 @@ const AgriculturalDroneDashboard = () => {
     } catch (err) {
       console.error(err);
       setCameraError(
-        err.response?.data?.message || err.message || 'Error starting backend camera stream'
+        err.response?.data?.message || err.message || t('error_camera_stream')
       );
       setIsCameraOn(false);
     }
@@ -403,20 +413,20 @@ const AgriculturalDroneDashboard = () => {
 
   if (showSplash) {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-amber-50 via-stone-100 to-amber-100 flex items-center justify-center">
+      <div className={`fixed inset-0 ${activeDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-950' : 'bg-gradient-to-br from-amber-50 via-stone-100 to-amber-100'} flex items-center justify-center`}>
         <div className="text-center">
           <div className="flex items-center justify-center gap-4 mb-8">
-            <span className="text-6xl text-green-700">✦</span>
-            <h1 className="text-6xl font-light text-green-800 tracking-wider">
-              Welcome to <span className="font-semibold">{typewriterText}</span>
+            <span className={`text-6xl ${activeDarkMode ? 'text-green-400' : 'text-green-700'}`}>✦</span>
+            <h1 className={`text-6xl font-light ${activeDarkMode ? 'text-green-300' : 'text-green-800'} tracking-wider`}>
+              {t('welcome_to')} <span className="font-semibold">{typewriterText}</span>
               <span className="animate-pulse">|</span>
             </h1>
-            <span className="text-6xl text-green-700">✦</span>
+            <span className={`text-6xl ${activeDarkMode ? 'text-green-400' : 'text-green-700'}`}>✦</span>
           </div>
           <div className="flex justify-center gap-2">
-            <Sprout className="w-8 h-8 text-green-600 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <Leaf className="w-8 h-8 text-green-600 animate-bounce" style={{ animationDelay: '200ms' }} />
-            <Sprout className="w-8 h-8 text-green-600 animate-bounce" style={{ animationDelay: '400ms' }} />
+            <Sprout className={`w-8 h-8 ${activeDarkMode ? 'text-green-400' : 'text-green-600'} animate-bounce`} style={{ animationDelay: '0ms' }} />
+            <Leaf className={`w-8 h-8 ${activeDarkMode ? 'text-green-400' : 'text-green-600'} animate-bounce`} style={{ animationDelay: '200ms' }} />
+            <Sprout className={`w-8 h-8 ${activeDarkMode ? 'text-green-400' : 'text-green-600'} animate-bounce`} style={{ animationDelay: '400ms' }} />
           </div>
         </div>
       </div>
@@ -425,20 +435,20 @@ const AgriculturalDroneDashboard = () => {
 
   if (!showDashboard) return null;
 
-  const rootBg = darkMode
+  const rootBg = activeDarkMode
     ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-slate-100'
     : 'bg-gradient-to-br from-stone-50 via-amber-50 to-green-50 text-slate-900';
 
-  const cardBase = 'rounded-xl shadow-lg p-6 transition-all duration-300 border border-white/10';
-  const cardBg = darkMode ? 'bg-slate-900/70 backdrop-blur' : 'bg-white';
+  const cardBase = 'rounded-xl shadow-lg p-6 transition-all duration-300 border';
+  const cardBg = activeDarkMode ? 'bg-slate-900/70 backdrop-blur border-gray-700' : 'bg-white border-white/10';
 
   const navItemClasses = (tab) =>
     `flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
       activeTab === tab
-        ? darkMode
+        ? activeDarkMode
           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-        : darkMode
+        : activeDarkMode
         ? 'text-slate-300 hover:bg-slate-800'
         : 'text-slate-600 hover:bg-slate-100'
     }`;
@@ -448,43 +458,48 @@ const AgriculturalDroneDashboard = () => {
     <div className="space-y-6">
       <div className={`${cardBase} ${cardBg}`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-green-800 dark:text-emerald-200 flex items-center gap-2">
+          <h3 className={`text-lg font-bold ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'} flex items-center gap-2`}>
             <Settings className="w-5 h-5" />
-            Mission Configuration
+            {t('mission_configuration')}
           </h3>
           <span
             className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 ${
-              isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              isConnected
+                ? activeDarkMode
+                  ? 'bg-green-900 bg-opacity-50 text-green-300'
+                  : 'bg-green-100 text-green-700'
+                : activeDarkMode
+                  ? 'bg-red-900 bg-opacity-50 text-red-300'
+                  : 'bg-red-100 text-red-700'
             }`}
           >
             <Radio className="w-3 h-3" />
-            {isConnected ? 'Connected' : 'Disconnected'}
+            {isConnected ? t('connected') : t('disconnected')}
           </span>
         </div>
 
-        <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">
-          Define your farm parameters and start the mission. This configuration will drive altitude,
-          flight pattern and battery planning.
+        <p className={`text-xs ${activeDarkMode ? 'text-gray-300' : 'text-gray-500'} mb-4`}>
+          {t('mission_config_description')}
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-green-700 dark:text-emerald-200 font-semibold mb-2">
-              Farm Name *
+            <label className={`block ${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} font-semibold mb-2`}>
+              {t('farm_name')} *
             </label>
             <input
               type="text"
               required
               value={formData.farmName}
               onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-green-200 rounded-lg focus:border-green-500 focus:outline-none"
-              placeholder="e.g., Green Valley Orchards"
+              className={`w-full px-4 py-3 border-2 ${activeDarkMode ? 'border-gray-600 bg-gray-700 text-white focus:border-emerald-500' : 'border-green-200 bg-white focus:border-green-500'} rounded-lg focus:outline-none`}
+              placeholder={t('farm_name_placeholder')}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-green-700 dark:text-emerald-200 font-semibold mb-2">
-                Farm Size (hectares) *
+              <label className={`block ${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} font-semibold mb-2`}>
+                {t('farm_size_hectares')} *
               </label>
               <input
                 type="number"
@@ -492,27 +507,27 @@ const AgriculturalDroneDashboard = () => {
                 step="0.1"
                 value={formData.hectares}
                 onChange={(e) => setFormData({ ...formData, hectares: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-green-200 rounded-lg focus:border-green-500 focus:outline-none"
-                placeholder="e.g., 5.5"
+                className={`w-full px-4 py-3 border-2 ${activeDarkMode ? 'border-gray-600 bg-gray-700 text-white focus:border-emerald-500' : 'border-green-200 bg-white focus:border-green-500'} rounded-lg focus:outline-none`}
+                placeholder={t('hectares_placeholder')}
               />
             </div>
             <div>
-              <label className="block text-green-700 dark:text-emerald-200 font-semibold mb-2">
-                Tree Age (years) *
+              <label className={`block ${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} font-semibold mb-2`}>
+                {t('tree_age_years')} *
               </label>
               <input
                 type="number"
                 required
                 value={formData.treeAge}
                 onChange={(e) => setFormData({ ...formData, treeAge: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-green-200 rounded-lg focus:border-green-500 focus:outline-none"
-                placeholder="e.g., 8"
+                className={`w-full px-4 py-3 border-2 ${activeDarkMode ? 'border-gray-600 bg-gray-700 text-white focus:border-emerald-500' : 'border-green-200 bg-white focus:border-green-500'} rounded-lg focus:outline-none`}
+                placeholder={t('tree_age_placeholder')}
               />
             </div>
           </div>
           <div>
-            <label className="block text-green-700 dark:text-emerald-200 font-semibold mb-2">
-              Tree Species *
+            <label className={`block ${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} font-semibold mb-2`}>
+              {t('tree_species')} *
             </label>
             <select
               required
@@ -520,9 +535,9 @@ const AgriculturalDroneDashboard = () => {
               onChange={(e) => {
                 setFormData({ ...formData, treeType: e.target.value });
               }}
-              className="w-full px-4 py-3 border-2 border-green-200 rounded-lg focus:border-green-500 focus:outline-none"
+              className={`w-full px-4 py-3 border-2 ${activeDarkMode ? 'border-gray-600 bg-gray-700 text-white focus:border-emerald-500' : 'border-green-200 bg-white focus:border-green-500'} rounded-lg focus:outline-none`}
             >
-              <option value="">Select a tree species</option>
+              <option value="">{t('select_tree_species')}</option>
               {Object.keys(TREE_GROWTH_DB)
                 .sort()
                 .map((name) => (
@@ -535,27 +550,27 @@ const AgriculturalDroneDashboard = () => {
 
           {estimatedTreeHeight && recommendedAltitude && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-green-50 dark:bg-emerald-900/30 border border-green-200 dark:border-emerald-700 rounded-lg p-4">
-                <p className="text-xs text-green-700 dark:text-emerald-200 mb-1">
-                  Estimated Tree Height
+              <div className={`${activeDarkMode ? 'bg-emerald-900 bg-opacity-30 border-emerald-700' : 'bg-green-50 border-green-200'} border rounded-lg p-4`}>
+                <p className={`text-xs ${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} mb-1`}>
+                  {t('estimated_tree_height')}
                 </p>
-                <p className="text-2xl font-bold text-green-700 dark:text-emerald-100">
+                <p className={`text-2xl font-bold ${activeDarkMode ? 'text-emerald-100' : 'text-green-700'}`}>
                   {estimatedTreeHeight.toFixed(2)} m
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                  Based on species <span className="font-semibold">{formData.treeType}</span> and age{' '}
-                  <span className="font-semibold">{formData.treeAge} years</span>.
+                <p className={`text-xs ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+                  {t('based_on_species')} <span className="font-semibold">{formData.treeType}</span> {t('and_age')}{' '}
+                  <span className="font-semibold">{formData.treeAge} {t('years')}</span>.
                 </p>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-lg p-4">
-                <p className="text-xs text-emerald-800 dark:text-emerald-100 mb-1">
-                  Recommended Flight Altitude
+              <div className={`${activeDarkMode ? 'bg-emerald-900 bg-opacity-40 border-emerald-700' : 'bg-emerald-50 border-emerald-300'} border rounded-lg p-4`}>
+                <p className={`text-xs ${activeDarkMode ? 'text-emerald-100' : 'text-emerald-800'} mb-1`}>
+                  {t('recommended_flight_altitude')}
                 </p>
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-50">
+                <p className={`text-2xl font-bold ${activeDarkMode ? 'text-emerald-50' : 'text-emerald-700'}`}>
                   {recommendedAltitude.toFixed(1)} m
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                  Canopy height + safety margin for imaging.
+                <p className={`text-xs ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+                  {t('canopy_height_safety_margin')}
                 </p>
               </div>
             </div>
@@ -565,21 +580,25 @@ const AgriculturalDroneDashboard = () => {
             <button
               type="button"
               onClick={handleDisconnect}
-              className={`px-6 py-3 rounded-lg font-semibold text-sm border-2 ${
+              className={`px-6 py-3 rounded-lg font-semibold text-sm border-2 transition-all ${
                 isConnected
-                  ? 'border-red-500 text-red-600 hover:bg-red-50'
-                  : 'border-gray-300 text-gray-400 cursor-not-allowed'
-              } transition-all`}
+                  ? activeDarkMode
+                    ? 'border-red-500 text-red-400 hover:bg-red-900 hover:bg-opacity-30'
+                    : 'border-red-500 text-red-600 hover:bg-red-50'
+                  : activeDarkMode
+                    ? 'border-gray-600 text-gray-500 cursor-not-allowed'
+                    : 'border-gray-300 text-gray-400 cursor-not-allowed'
+              }`}
               disabled={!isConnected}
             >
-              Disconnect
+              {t('disconnect')}
             </button>
             <button
               type="button"
               onClick={handleStartMission}
-              className="flex-1 min-w-[160px] px-6 py-3 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition-all transform hover:scale-105"
+              className={`flex-1 min-w-[160px] px-6 py-3 ${activeDarkMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-green-600 hover:bg-green-700'} text-white rounded-lg font-semibold text-sm transition-all transform hover:scale-105`}
             >
-              {flightData ? 'Update Mission Plan' : 'Start Mission'}
+              {flightData ? t('update_mission_plan') : t('start_mission')}
             </button>
           </div>
         </div>
@@ -587,39 +606,45 @@ const AgriculturalDroneDashboard = () => {
 
       {flightData && (
         <div className={`${cardBase} ${cardBg}`}>
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-            <Plane className="w-5 h-5 text-green-500" />
-            Current Mission Summary
+          <h3 className={`text-lg font-bold flex items-center gap-2 mb-4 ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'}`}>
+            <Plane className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+            {t('current_mission_summary')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <div className="text-gray-500 dark:text-gray-300 text-xs mb-1">Farm</div>
-              <div className="font-semibold">{formData.farmName || '—'}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {formData.hectares || '—'} ha · {formData.treeType || 'Unknown'} trees
+              <div className={`${activeDarkMode ? 'text-gray-300' : 'text-gray-500'} text-xs mb-1`}>{t('farm')}</div>
+              <div className={`font-semibold ${textClass}`}>{formData.farmName || '—'}</div>
+              <div className={`text-xs ${activeDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                {formData.hectares || '—'} {t('ha')} · {formData.treeType || t('unknown')} {t('trees')}
               </div>
             </div>
             <div>
-              <div className="text-gray-500 dark:text-gray-300 text-xs mb-1">Flight Profile</div>
-              <div className="text-sm">
-                {flightData.altitude} m · {flightData.duration} min
+              <div className={`${activeDarkMode ? 'text-gray-300' : 'text-gray-500'} text-xs mb-1`}>{t('flight_profile')}</div>
+              <div className={`text-sm ${textClass}`}>
+                {flightData.altitude} m · {flightData.duration} {t('min')}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {flightData.algorithm} pattern · {flightData.passes} passes
+              <div className={`text-xs ${activeDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                {flightData.algorithm} {t('pattern')} · {flightData.passes} {t('passes')}
               </div>
             </div>
             <div>
-              <div className="text-gray-500 dark:text-gray-300 text-xs mb-1">Status</div>
+              <div className={`${activeDarkMode ? 'text-gray-300' : 'text-gray-500'} text-xs mb-1`}>{t('status')}</div>
               <div className="flex items-center gap-2 text-sm">
                 <span
                   className={`px-2 py-1 rounded-full text-[11px] font-semibold ${
-                    isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    isConnected
+                      ? activeDarkMode
+                        ? 'bg-green-900 bg-opacity-50 text-green-300'
+                        : 'bg-green-100 text-green-700'
+                      : activeDarkMode
+                        ? 'bg-red-900 bg-opacity-50 text-red-300'
+                        : 'bg-red-100 text-red-700'
                   }`}
                 >
-                  {isConnected ? 'Connected' : 'Disconnected'}
+                  {isConnected ? t('connected') : t('disconnected')}
                 </span>
-                <span className="text-gray-500 dark:text-gray-300 text-xs">
-                  Battery {telemetry.battery.toFixed(0)}%
+                <span className={`${activeDarkMode ? 'text-gray-300' : 'text-gray-500'} text-xs`}>
+                  {t('battery')} {telemetry.battery.toFixed(0)}%
                 </span>
               </div>
             </div>
@@ -633,15 +658,21 @@ const AgriculturalDroneDashboard = () => {
   const renderTelemetry = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {/* GPS Status */}
-      <div className={`${cardBase} ${cardBg} border-l-4 border-l-green-500`}>
+      <div className={`${cardBase} ${cardBg} border-l-4 ${activeDarkMode ? 'border-l-emerald-500' : 'border-l-green-500'}`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <Satellite className="w-5 h-5 text-green-500" />
-            GPS Status
+          <h3 className={`text-lg font-bold flex items-center gap-2 ${textClass}`}>
+            <Satellite className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+            {t('gps_status')}
           </h3>
           <span
             className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              telemetry.gps === 'RTK Fixed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              telemetry.gps === 'RTK Fixed'
+                ? activeDarkMode
+                  ? 'bg-green-900 bg-opacity-50 text-green-300'
+                  : 'bg-green-100 text-green-700'
+                : activeDarkMode
+                  ? 'bg-red-900 bg-opacity-50 text-red-300'
+                  : 'bg-red-100 text-red-700'
             }`}
           >
             {telemetry.gps}
@@ -649,18 +680,18 @@ const AgriculturalDroneDashboard = () => {
         </div>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">Satellites</span>
-            <span className="font-bold text-green-700 dark:text-green-300">{telemetry.satellites}</span>
+            <span className={activeDarkMode ? 'text-gray-400' : 'text-gray-500'}>{t('satellites')}</span>
+            <span className={`font-bold ${activeDarkMode ? 'text-green-300' : 'text-green-700'}`}>{telemetry.satellites}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">Latitude</span>
-            <span className="font-mono text-sm font-bold text-green-700 dark:text-green-300">
+            <span className={activeDarkMode ? 'text-gray-400' : 'text-gray-500'}>{t('latitude')}</span>
+            <span className={`font-mono text-sm font-bold ${activeDarkMode ? 'text-green-300' : 'text-green-700'}`}>
               {telemetry.lat.toFixed(6)}°
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">Longitude</span>
-            <span className="font-mono text-sm font-bold text-green-700 dark:text-green-300">
+            <span className={activeDarkMode ? 'text-gray-400' : 'text-gray-500'}>{t('longitude')}</span>
+            <span className={`font-mono text-sm font-bold ${activeDarkMode ? 'text-green-300' : 'text-green-700'}`}>
               {telemetry.lon.toFixed(6)}°
             </span>
           </div>
@@ -668,17 +699,17 @@ const AgriculturalDroneDashboard = () => {
       </div>
 
       {/* Battery */}
-      <div className={`${cardBase} ${cardBg} border-l-4 border-l-amber-500`}>
+      <div className={`${cardBase} ${cardBg} border-l-4 ${activeDarkMode ? 'border-l-amber-400' : 'border-l-amber-500'}`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <Battery className="w-5 h-5 text-amber-500" />
-            Battery
+          <h3 className={`text-lg font-bold flex items-center gap-2 ${textClass}`}>
+            <Battery className={`w-5 h-5 ${activeDarkMode ? 'text-amber-400' : 'text-amber-500'}`} />
+            {t('battery')}
           </h3>
-          <span className="text-2xl font-bold text-green-700 dark:text-green-300">
+          <span className={`text-2xl font-bold ${activeDarkMode ? 'text-green-300' : 'text-green-700'}`}>
             {telemetry.battery.toFixed(1)}%
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+        <div className={`w-full ${activeDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
           <div
             className={`h-full transition-all duration-500 ${
               telemetry.battery > 50 ? 'bg-green-500' : telemetry.battery > 20 ? 'bg-amber-500' : 'bg-red-500'
@@ -689,21 +720,21 @@ const AgriculturalDroneDashboard = () => {
       </div>
 
       {/* Flight Data */}
-      <div className={`${cardBase} ${cardBg} border-l-4 border-l-blue-500`}>
-        <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-          <Navigation className="w-5 h-5 text-blue-500" />
-          Flight Data
+      <div className={`${cardBase} ${cardBg} border-l-4 ${activeDarkMode ? 'border-l-blue-400' : 'border-l-blue-500'}`}>
+        <h3 className={`text-lg font-bold flex items-center gap-2 mb-4 ${textClass}`}>
+          <Navigation className={`w-5 h-5 ${activeDarkMode ? 'text-blue-400' : 'text-blue-500'}`} />
+          {t('flight_data')}
         </h3>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">Altitude</span>
-            <span className="font-bold text-blue-600 dark:text-blue-300">
+            <span className={activeDarkMode ? 'text-gray-400' : 'text-gray-500'}>{t('altitude')}</span>
+            <span className={`font-bold ${activeDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>
               {telemetry.altitude.toFixed(1)} m
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">Ground Speed</span>
-            <span className="font-bold text-blue-600 dark:text-blue-300">
+            <span className={activeDarkMode ? 'text-gray-400' : 'text-gray-500'}>{t('ground_speed')}</span>
+            <span className={`font-bold ${activeDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>
               {telemetry.speed.toFixed(1)} m/s
             </span>
           </div>
@@ -712,34 +743,34 @@ const AgriculturalDroneDashboard = () => {
 
       {/* Mission Plan summary */}
       {flightData && (
-        <div className={`${cardBase} bg-gradient-to-br from-green-600 to-green-700 text-white md:col-span-2 xl:col-span-3`}>
+        <div className={`${cardBase} ${activeDarkMode ? 'bg-gradient-to-br from-emerald-800 to-emerald-900 border-emerald-700' : 'bg-gradient-to-br from-green-600 to-green-700 border-green-500'} text-white md:col-span-2 xl:col-span-3`}>
           <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
             <Plane className="w-5 h-5" />
-            Mission Plan
+            {t('mission_plan')}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div className="space-y-1">
-              <span className="text-green-100 text-xs">Farm</span>
+              <span className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-100'} text-xs`}>{t('farm')}</span>
               <div className="font-bold truncate">{formData.farmName || '—'}</div>
             </div>
             <div className="space-y-1">
-              <span className="text-green-100 text-xs">Optimal Altitude</span>
+              <span className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-100'} text-xs`}>{t('optimal_altitude')}</span>
               <div className="font-bold">{flightData.altitude} m</div>
             </div>
             <div className="space-y-1">
-              <span className="text-green-100 text-xs">Est. Duration</span>
-              <div className="font-bold">{flightData.duration} min</div>
+              <span className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-100'} text-xs`}>{t('est_duration')}</span>
+              <div className="font-bold">{flightData.duration} {t('min')}</div>
             </div>
             <div className="space-y-1">
-              <span className="text-green-100 text-xs">Algorithm</span>
+              <span className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-100'} text-xs`}>{t('algorithm')}</span>
               <div className="font-bold">{flightData.algorithm}</div>
             </div>
             <div className="space-y-1">
-              <span className="text-green-100 text-xs">Coverage</span>
-              <div className="font-bold">{(flightData.coverage / 10000).toFixed(1)} ha</div>
+              <span className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-100'} text-xs`}>{t('coverage')}</span>
+              <div className="font-bold">{(flightData.coverage / 10000).toFixed(1)} {t('ha')}</div>
             </div>
             <div className="space-y-1">
-              <span className="text-green-100 text-xs">Passes</span>
+              <span className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-100'} text-xs`}>{t('passes')}</span>
               <div className="font-bold">{flightData.passes}</div>
             </div>
           </div>
@@ -752,18 +783,18 @@ const AgriculturalDroneDashboard = () => {
   const renderFlight = () => (
     <div className="space-y-6">
       <div className={`${cardBase} ${cardBg}`}>
-        <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-          <MapPin className="w-5 h-5 text-green-500" />
-          Field Map & Flight Path
+        <h3 className={`text-lg font-bold flex items-center gap-2 mb-4 ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'}`}>
+          <MapPin className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+          {t('field_map_flight_path')}
         </h3>
-        <div className="bg-gradient-to-br from-green-50 to-amber-50 dark:from-slate-800 dark:to-emerald-800 rounded-lg h-80 flex items-center justify-center border-2 border-dashed border-green-300 dark:border-emerald-500/60">
+        <div className={`${activeDarkMode ? 'bg-gradient-to-br from-slate-800 to-emerald-900 border-emerald-500' : 'bg-gradient-to-br from-green-50 to-amber-50 border-green-300'} rounded-lg h-80 flex items-center justify-center border-2 border-dashed`}>
           <div className="text-center">
-            <MapPin className="w-16 h-16 text-green-500 mx-auto mb-4 animate-bounce" />
-            <p className="text-green-700 dark:text-emerald-200 font-semibold text-lg">
-              Map Integration Ready
+            <MapPin className={`w-16 h-16 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'} mx-auto mb-4 animate-bounce`} />
+            <p className={`${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} font-semibold text-lg`}>
+              {t('map_integration_ready')}
             </p>
-            <p className="text-gray-500 dark:text-gray-300 text-sm mt-2">
-              Connect to visualize flight path, boundaries and coverage in real-time.
+            <p className={`${activeDarkMode ? 'text-gray-300' : 'text-gray-500'} text-sm mt-2`}>
+              {t('connect_to_visualize')}
             </p>
           </div>
         </div>
@@ -771,76 +802,75 @@ const AgriculturalDroneDashboard = () => {
 
       {/* Flight controls */}
       <div className={`${cardBase} ${cardBg}`}>
-        <h3 className="text-lg font-bold text-green-800 dark:text-emerald-200 flex items-center gap-2 mb-4">
-          <Plane className="w-5 h-5 text-green-500" />
-          Flight Controls
+        <h3 className={`text-lg font-bold ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'} flex items-center gap-2 mb-4`}>
+          <Plane className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+          {t('flight_controls')}
         </h3>
         <div className="flex flex-wrap gap-4">
           <button
             onClick={handleArm}
             disabled={!isConnected}
-            className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold disabled:bg-gray-300 disabled:text-gray-500"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeDarkMode ? 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:text-gray-500' : 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:text-gray-500'} text-white transition-all`}
           >
-            Arm
+            {t('arm')}
           </button>
           <button
             onClick={handleTakeoff}
             disabled={!isConnected}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:bg-gray-300 disabled:text-gray-500"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeDarkMode ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500' : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'} text-white transition-all`}
           >
-            Takeoff
+            {t('takeoff')}
           </button>
           <button
             onClick={handleLand}
             disabled={!isConnected}
-            className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold disabled:bg-gray-300 disabled:text-gray-500"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeDarkMode ? 'bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:text-gray-500' : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:text-gray-500'} text-white transition-all`}
           >
-            Land
+            {t('land')}
           </button>
           <button
             onClick={handleRTL}
             disabled={!isConnected}
-            className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold disabled:bg-gray-300 disabled:text-gray-500"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeDarkMode ? 'bg-amber-500 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500' : 'bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:text-gray-500'} text-white transition-all`}
           >
-            RTL
+            {t('rtl')}
           </button>
         </div>
       </div>
 
       {flightData && (
         <div className={`${cardBase} ${cardBg}`}>
-          <h3 className="text-lg font-bold text-green-800 dark:text-emerald-200 flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-green-500" />
-            Recommended Flight Strategy
+          <h3 className={`text-lg font-bold ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'} flex items-center gap-2 mb-4`}>
+            <TrendingUp className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+            {t('recommended_flight_strategy')}
           </h3>
-          <div className="bg-gradient-to-r from-green-50 to-amber-50 dark:from-slate-800 dark:to-emerald-900 rounded-lg p-6">
+          <div className={`${activeDarkMode ? 'bg-gradient-to-r from-slate-800 to-emerald-900' : 'bg-gradient-to-r from-green-50 to-amber-50'} rounded-lg p-6`}>
             <div className="flex flex-col md:flex-row items-start gap-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600 flex-shrink-0 mt-1" />
+              <CheckCircle2 className={`w-8 h-8 ${activeDarkMode ? 'text-emerald-400' : 'text-green-600'} flex-shrink-0 mt-1`} />
               <div>
-                <h4 className="text-xl font-bold text-green-800 dark:text-emerald-200 mb-2">
-                  {flightData.algorithm} Pattern
+                <h4 className={`text-xl font-bold ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'} mb-2`}>
+                  {flightData.algorithm} {t('pattern')}
                 </h4>
-                <p className="text-gray-700 dark:text-gray-200 mb-4 text-sm">
-                  Based on your farm size of {formData.hectares || '—'} hectares and{' '}
-                  {formData.terrainType} terrain, this algorithm provides optimal coverage with{' '}
-                  {flightData.passes} flight passes.
+                <p className={`${activeDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-4 text-sm`}>
+                  {t('based_on_farm_size')} {formData.hectares || '—'} {t('hectares')} {t('and')}{' '}
+                  {formData.terrainType} {t('terrain')}, {t('algorithm_provides')} {flightData.passes} {t('flight_passes')}.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-white/80 dark:bg-slate-900 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600 dark:text-emerald-300">
+                  <div className={`${activeDarkMode ? 'bg-slate-900 border border-gray-700' : 'bg-white/80'} rounded-lg p-3 text-center`}>
+                    <div className={`text-2xl font-bold ${activeDarkMode ? 'text-emerald-300' : 'text-green-600'}`}>
                       {flightData.altitude}m
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300">Flight Height</div>
+                    <div className={`text-xs ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{t('flight_height')}</div>
                   </div>
-                  <div className="bg-white/80 dark:bg-slate-900 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-amber-600">{flightData.duration}min</div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300">Flight Time</div>
+                  <div className={`${activeDarkMode ? 'bg-slate-900 border border-gray-700' : 'bg-white/80'} rounded-lg p-3 text-center`}>
+                    <div className={`text-2xl font-bold ${activeDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>{flightData.duration}{t('min')}</div>
+                    <div className={`text-xs ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{t('flight_time')}</div>
                   </div>
-                  <div className="bg-white/80 dark:bg-slate-900 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                  <div className={`${activeDarkMode ? 'bg-slate-900 border border-gray-700' : 'bg-white/80'} rounded-lg p-3 text-center`}>
+                    <div className={`text-2xl font-bold ${activeDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                       {Math.ceil(flightData.batteryNeeded / 100)}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300">Batteries Needed</div>
+                    <div className={`text-xs ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{t('batteries_needed')}</div>
                   </div>
                 </div>
               </div>
@@ -850,8 +880,8 @@ const AgriculturalDroneDashboard = () => {
       )}
 
       {!flightData && (
-        <p className="text-sm text-gray-500 dark:text-gray-300">
-          Configure a mission in the Mission Config tab to see flight strategy details.
+        <p className={`text-sm ${activeDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+          {t('configure_mission_to_see_strategy')}
         </p>
       )}
     </div>
@@ -867,64 +897,61 @@ const AgriculturalDroneDashboard = () => {
     return (
       <div className="space-y-6">
         <div className={`${cardBase} ${cardBg}`}>
-          <h3 className="text-lg font-bold text-green-800 dark:text-emerald-200 flex items-center gap-2 mb-4">
-            <Leaf className="w-5 h-5 text-green-500" />
-            Tree Health Analysis (YOLO + CV)
+          <h3 className={`text-lg font-bold ${activeDarkMode ? 'text-emerald-200' : 'text-green-800'} flex items-center gap-2 mb-4`}>
+            <Leaf className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+            {t('tree_health_analysis')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-green-50 dark:bg-emerald-900/40 rounded-lg p-4 text-center border-2 border-green-200 dark:border-emerald-600/70">
-              <div className="text-3xl font-bold text-green-600 dark:text-emerald-300">{healthy}</div>
-              <div className="text-sm text-green-700 dark:text-emerald-200 mt-1">Healthy</div>
+            <div className={`${activeDarkMode ? 'bg-emerald-900 bg-opacity-40 border-emerald-600' : 'bg-green-50 border-green-200'} rounded-lg p-4 text-center border-2`}>
+              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-emerald-300' : 'text-green-600'}`}>{healthy}</div>
+              <div className={`text-sm ${activeDarkMode ? 'text-emerald-200' : 'text-green-700'} mt-1`}>{t('healthy')}</div>
             </div>
-            <div className="bg-amber-50 dark:bg-amber-900/40 rounded-lg p-4 text-center border-2 border-amber-200 dark:border-amber-500/80">
-              <div className="text-3xl font-bold text-amber-600">{defective}</div>
-              <div className="text-sm text-amber-700 dark:text-amber-200 mt-1">
-                Defective / Stressed
+            <div className={`${activeDarkMode ? 'bg-amber-900 bg-opacity-40 border-amber-500' : 'bg-amber-50 border-amber-200'} rounded-lg p-4 text-center border-2`}>
+              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>{defective}</div>
+              <div className={`text-sm ${activeDarkMode ? 'text-amber-200' : 'text-amber-700'} mt-1`}>
+                {t('defective_stressed')}
               </div>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 text-center border-2 border-slate-200 dark:border-slate-600">
-              <div className="text-3xl font-bold text-slate-700 dark:text-slate-100">{total}</div>
-              <div className="text-sm text-slate-700 dark:text-slate-200 mt-1">Total Detections</div>
+            <div className={`${activeDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-slate-50 border-slate-200'} rounded-lg p-4 text-center border-2`}>
+              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-slate-100' : 'text-slate-700'}`}>{total}</div>
+              <div className={`text-sm ${activeDarkMode ? 'text-slate-200' : 'text-slate-700'} mt-1`}>{t('total_detections')}</div>
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-4 border border-emerald-200 dark:border-emerald-700">
-              <div className="text-xs text-emerald-700 dark:text-emerald-200 mb-1">
-                Overall Health Score
+            <div className={`${activeDarkMode ? 'bg-emerald-900 bg-opacity-30 border-emerald-700' : 'bg-emerald-50 border-emerald-200'} rounded-lg p-4 border`}>
+              <div className={`text-xs ${activeDarkMode ? 'text-emerald-200' : 'text-emerald-700'} mb-1`}>
+                {t('overall_health_score')}
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-emerald-700 dark:text-emerald-200">
+                <span className={`text-3xl font-bold ${activeDarkMode ? 'text-emerald-200' : 'text-emerald-700'}`}>
                   {healthScore != null ? healthScore.toFixed(1) : '—'}
                 </span>
-                <span className="text-sm text-emerald-800 dark:text-emerald-100">/ 100</span>
+                <span className={`text-sm ${activeDarkMode ? 'text-emerald-100' : 'text-emerald-800'}`}>/ 100</span>
               </div>
-              <div className="text-sm mt-2 text-emerald-800 dark:text-emerald-100">
-                Status: <span className="font-semibold">{healthOverview.status}</span>
+              <div className={`text-sm mt-2 ${activeDarkMode ? 'text-emerald-100' : 'text-emerald-800'}`}>
+                {t('status')}: <span className="font-semibold">{healthOverview.status}</span>
               </div>
             </div>
 
-            <div className="flex flex-col justify-center items-start text-sm text-gray-600 dark:text-gray-200">
+            <div className={`flex flex-col justify-center items-start text-sm ${activeDarkMode ? 'text-gray-200' : 'text-gray-600'}`}>
               <p>
-                This panel summarizes the health of the field based on YOLO detections and classical
-                CV metrics such as NDVI-like indices, texture and green coverage.
+                {t('health_panel_description')}
               </p>
               <p className="mt-2">
-                For live data, turn the camera on in the <strong>Camera</strong> tab so the backend
-                can process the drone video stream in real time.
+                {t('for_live_data_turn_camera_on')} <strong>{t('camera')}</strong> {t('tab_for_live_processing')}.
               </p>
             </div>
           </div>
         </div>
 
         <div className={`${cardBase} ${cardBg}`}>
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
-            <TrendingUp className="w-5 h-5 text-emerald-500" />
-            Yield & Health Insights
+          <h3 className={`text-lg font-bold flex items-center gap-2 mb-2 ${textClass}`}>
+            <TrendingUp className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`} />
+            {t('yield_health_insights')}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            In the future this area can host NDVI heatmaps, time-series of health scores, and yield
-            estimation charts for each mission.
+          <p className={`text-sm ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            {t('future_area_description')}
           </p>
         </div>
       </div>
@@ -936,41 +963,46 @@ const AgriculturalDroneDashboard = () => {
     <div className="space-y-6">
       <div className={`${cardBase} ${cardBg}`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <Camera className="w-5 h-5 text-green-500" />
-            Live Drone Camera (Backend)
+          <h3 className={`text-lg font-bold flex items-center gap-2 ${textClass}`}>
+            <Camera className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-green-500'}`} />
+            {t('live_drone_camera')}
           </h3>
           <span
             className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              isCameraOn ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+              isCameraOn
+                ? activeDarkMode
+                  ? 'bg-green-900 bg-opacity-50 text-green-300'
+                  : 'bg-green-100 text-green-700'
+                : activeDarkMode
+                  ? 'bg-gray-700 text-gray-300'
+                  : 'bg-gray-200 text-gray-600'
             }`}
           >
-            {isCameraOn ? 'Streaming' : 'Idle'}
+            {isCameraOn ? t('streaming') : t('idle')}
           </span>
         </div>
 
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          This view connects to the backend video stream on port 8001
-          (<code className="mx-1">/api/camera/stream</code>) while YOLO and classical CV run on
-          every frame.
+        <p className={`text-sm ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4`}>
+          {t('camera_description')}
+          (<code className="mx-1">/api/camera/stream</code>) {t('while_yolo_cv_run')}.
         </p>
 
         <div className="flex flex-wrap gap-4 mb-4">
           <button
             type="button"
             onClick={startCamera}
-            className="px-5 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-all disabled:opacity-50"
+            className={`px-5 py-2 rounded-lg text-sm font-semibold ${activeDarkMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-green-600 hover:bg-green-700'} text-white transition-all disabled:opacity-50`}
             disabled={isCameraOn}
           >
-            Start Drone Camera
+            {t('start_drone_camera')}
           </button>
           <button
             type="button"
             onClick={stopCamera}
-            className="px-5 py-2 rounded-lg text-sm font-semibold border border-red-500 text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
+            className={`px-5 py-2 rounded-lg text-sm font-semibold border ${activeDarkMode ? 'border-red-500 text-red-400 hover:bg-red-900 hover:bg-opacity-30' : 'border-red-500 text-red-600 hover:bg-red-50'} transition-all disabled:opacity-50`}
             disabled={!isCameraOn}
           >
-            Stop Camera
+            {t('stop_camera')}
           </button>
         </div>
 
@@ -981,16 +1013,16 @@ const AgriculturalDroneDashboard = () => {
           </div>
         )}
 
-        <div className="rounded-xl overflow-hidden border border-green-300 dark:border-emerald-600 bg-black/80 flex items-center justify-center h-80">
+        <div className={`rounded-xl overflow-hidden border ${activeDarkMode ? 'border-emerald-600 bg-black' : 'border-green-300 bg-black/80'} flex items-center justify-center h-80`}>
           {isCameraOn ? (
             <img
               src={imageAPI.getStreamURL()}
-              alt="Drone camera stream"
+              alt={t('drone_camera_stream')}
               className="w-full h-full object-contain bg-black"
             />
           ) : (
-            <div className="text-gray-500 text-sm">
-              Camera is off. Click <strong>Start Drone Camera</strong> to begin streaming.
+            <div className={`${activeDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
+              {t('camera_off_message')} <strong>{t('start_drone_camera')}</strong> {t('to_begin_streaming')}.
             </div>
           )}
         </div>
@@ -1001,32 +1033,32 @@ const AgriculturalDroneDashboard = () => {
   return (
     <div className={`min-h-screen p-6 animate-fade-in ${rootBg}`}>
       {/* Header */}
-      <header className="bg-gradient-to-r from-green-700 to-green-600 rounded-2xl shadow-2xl p-6 mb-6 animate-slide-down">
+      <header className={`${activeDarkMode ? 'bg-gradient-to-r from-emerald-800 to-emerald-700' : 'bg-gradient-to-r from-green-700 to-green-600'} rounded-2xl shadow-2xl p-6 mb-6 animate-slide-down`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-amber-100/90 p-3 rounded-xl">
-              <Sprout className="w-8 h-8 text-green-700" />
+            <div className={`${activeDarkMode ? 'bg-emerald-900/50' : 'bg-amber-100/90'} p-3 rounded-xl`}>
+              <Sprout className={`w-8 h-8 ${activeDarkMode ? 'text-emerald-300' : 'text-green-700'}`} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">AgriVision Pro</h1>
-              <p className="text-green-100 text-sm">Precision Agriculture Drone System</p>
+              <h1 className="text-3xl font-bold text-white">{t('agrivision_pro')}</h1>
+              <p className={`${activeDarkMode ? 'text-emerald-100' : 'text-green-100'} text-sm`}>{t('precision_agriculture_drone_system')}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {/* Dark mode toggle */}
             <button
-              onClick={() => setDarkMode((prev) => !prev)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/20 hover:bg-black/30 text-amber-100 text-sm font-medium transition-all"
+              onClick={() => setDarkModeInternal((prev) => !prev)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg ${activeDarkMode ? 'bg-black/30 hover:bg-black/40' : 'bg-black/20 hover:bg-black/30'} ${activeDarkMode ? 'text-amber-200' : 'text-amber-100'} text-sm font-medium transition-all`}
             >
-              {darkMode ? (
+              {activeDarkMode ? (
                 <>
                   <Sun className="w-4 h-4" />
-                  Light
+                  {t('light')}
                 </>
               ) : (
                 <>
                   <Moon className="w-4 h-4" />
-                  Dark
+                  {t('dark')}
                 </>
               )}
             </button>
@@ -1034,11 +1066,15 @@ const AgriculturalDroneDashboard = () => {
             {/* Link status */}
             <div
               className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                isConnected ? 'bg-green-500' : 'bg-red-500'
+                isConnected
+                  ? activeDarkMode
+                    ? 'bg-emerald-600'
+                    : 'bg-green-500'
+                  : 'bg-red-500'
               } text-white`}
             >
               <Radio className="w-5 h-5" />
-              <span className="font-semibold">{isConnected ? 'Connected' : 'Disconnected'}</span>
+              <span className="font-semibold">{isConnected ? t('connected') : t('disconnected')}</span>
             </div>
           </div>
         </div>
@@ -1048,27 +1084,27 @@ const AgriculturalDroneDashboard = () => {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar */}
         <aside className={`${cardBase} ${cardBg} lg:w-60 flex-shrink-0 h-fit`}>
-          <h3 className="text-sm font-semibold mb-3 text-gray-500 dark:text-gray-300">Dashboard</h3>
+          <h3 className={`text-sm font-semibold mb-3 ${activeDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>{t('dashboard')}</h3>
           <div className="space-y-2">
             <button className={navItemClasses('mission')} onClick={() => setActiveTab('mission')}>
               <Settings className="w-4 h-4" />
-              Mission Config
+              {t('mission_config')}
             </button>
             <button className={navItemClasses('telemetry')} onClick={() => setActiveTab('telemetry')}>
               <Satellite className="w-4 h-4" />
-              Telemetry
+              {t('telemetry')}
             </button>
             <button className={navItemClasses('flight')} onClick={() => setActiveTab('flight')}>
               <Plane className="w-4 h-4" />
-              Flight & Map
+              {t('flight_and_map')}
             </button>
             <button className={navItemClasses('analysis')} onClick={() => setActiveTab('analysis')}>
               <Leaf className="w-4 h-4" />
-              Analysis (YOLO)
+              {t('analysis_yolo')}
             </button>
             <button className={navItemClasses('camera')} onClick={() => setActiveTab('camera')}>
               <Camera className="w-4 h-4" />
-              Camera
+              {t('camera')}
             </button>
           </div>
         </aside>
