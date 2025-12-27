@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import AgriculturalDroneDashboard from './AgriculturalDroneDashboard';
 import CropHealthMonitor from './CropHealthMonitor';
-import { Plane, Leaf } from 'lucide-react';
+import FarmScanner from './FarmScanner';
+import { Plane, Leaf, Map } from 'lucide-react';
 
 function App() {
-  const [activeView, setActiveView] = useState('drone'); // drone or health
+  const [activeView, setActiveView] = useState('drone'); // drone, health, or scanner
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,7 +40,19 @@ function App() {
                 }`}
               >
                 <Leaf className="w-5 h-5" />
-                Crop Health Monitor
+                Crop Health
+              </button>
+
+              <button
+                onClick={() => setActiveView('scanner')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all ${
+                  activeView === 'scanner'
+                    ? 'bg-purple-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Map className="w-5 h-5" />
+                Farm Scanner
               </button>
             </div>
           </div>
@@ -50,6 +63,7 @@ function App() {
       <div>
         {activeView === 'drone' && <AgriculturalDroneDashboard />}
         {activeView === 'health' && <CropHealthMonitor />}
+        {activeView === 'scanner' && <FarmScanner />}
       </div>
     </div>
   );

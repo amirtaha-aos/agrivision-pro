@@ -975,6 +975,260 @@ async def batch_analyze(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
 
+
+# =====================================================================
+# FARM MISSION ENDPOINTS
+# =====================================================================
+
+try:
+    from farm_mission_controller import FarmMissionController
+    MISSION_CONTROLLER_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Farm mission controller not available: {e}")
+    MISSION_CONTROLLER_AVAILABLE = False
+    FarmMissionController = None
+
+# Global mission controller instance
+farm_mission = None
+
+
+@app.post("/api/mission/plan")
+async def plan_farm_mission(
+    hectares: float,
+    crop_type: str = "apple",
+    tree_spacing: float = 5.0,
+    flight_altitude: float = 15.0,
+    overlap: float = 0.3
+):
+    """
+    Plan automated farm scanning mission
+
+    Parameters:
+    - hectares: Farm area in hectares
+    - crop_type: 'apple' or 'soybean'
+    - tree_spacing: Average distance between trees (meters)
+    - flight_altitude: Drone flight altitude (meters)
+    - overlap: Image overlap percentage (0.0-1.0)
+
+    Returns mission plan with waypoints and estimated tree count
+    """
+    if not MISSION_CONTROLLER_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Mission controller not available")
+
+    global farm_mission
+    farm_mission = FarmMissionController(crop_type=crop_type)
+
+    farm_params = {
+        "hectares": hectares,
+        "tree_spacing": tree_spacing,
+        "flight_altitude": flight_altitude,
+        "overlap": overlap
+    }
+
+    mission_plan = farm_mission.plan_mission(farm_params)
+
+    return {
+        "success": True,
+        "mission_plan": mission_plan
+    }
+
+
+@app.post("/api/mission/process-image")
+async def process_mission_image(
+    file: UploadFile = File(...),
+    gps_x: float = 0.0,
+    gps_y: float = 0.0
+):
+    """
+    Process a single image captured during mission
+    Detects trees and analyzes their health
+
+    Returns tree count and health data for this image
+    """
+    if not MISSION_CONTROLLER_AVAILABLE or farm_mission is None:
+        raise HTTPException(status_code=400, detail="No active mission. Plan mission first.")
+
+    try:
+        # Read image
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image format")
+
+        # Process image
+        gps_location = {"x": gps_x, "y": gps_y}
+        result = farm_mission.process_captured_image(image, gps_location)
+
+        return {
+            "success": True,
+            "trees_found": result["trees_found"],
+            "total_trees_so_far": farm_mission.mission_data["total_trees"],
+            "trees": result["trees"]
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+
+
+@app.post("/api/mission/batch-process")
+async def batch_process_mission_images(
+    files: List[UploadFile] = File(...)
+):
+    """
+    Process multiple images from a farm scanning mission
+    Simulates the drone capturing images across the farm
+
+    Returns aggregated results for all images
+    """
+    if not MISSION_CONTROLLER_AVAILABLE or farm_mission is None:
+        raise HTTPException(status_code=400, detail="No active mission. Plan mission first.")
+
+    try:
+        all_results = []
+
+        for idx, file in enumerate(files):
+            contents = await file.read()
+            nparr = np.frombuffer(contents, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if image is not None:
+                # Simulate GPS coordinates (in real system, these would come from drone)
+                gps_location = {
+                    "x": (idx % 10) * 10.0,
+                    "y": (idx // 10) * 10.0
+                }
+
+                result = farm_mission.process_captured_image(image, gps_location)
+                all_results.append({
+                    "image_index": idx,
+                    "filename": file.filename,
+                    "trees_found": result["trees_found"]
+                })
+
+        return {
+            "success": True,
+            "images_processed": len(all_results),
+            "total_trees_detected": farm_mission.mission_data["total_trees"],
+            "healthy_trees": farm_mission.mission_data["healthy_trees"],
+            "diseased_trees": farm_mission.mission_data["diseased_trees"],
+            "results": all_results
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
+
+
+@app.get("/api/mission/report")
+async def get_mission_report():
+    """
+    Generate comprehensive mission report with:
+    - Total tree count
+    - Health statistics
+    - Disease distribution
+    - 2D health map
+    - Contour map
+    - Individual tree log
+    - Treatment recommendations
+
+    Returns complete farm health analysis
+    """
+    if not MISSION_CONTROLLER_AVAILABLE or farm_mission is None:
+        raise HTTPException(status_code=400, detail="No active mission data available")
+
+    try:
+        report = farm_mission.generate_mission_report()
+
+        return {
+            "success": True,
+            "report": report
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+
+
+@app.get("/api/mission/export")
+async def export_mission_data(format: str = "json"):
+    """
+    Export mission data in various formats
+
+    Parameters:
+    - format: 'json' or 'csv'
+
+    Returns downloadable file
+    """
+    if not MISSION_CONTROLLER_AVAILABLE or farm_mission is None:
+        raise HTTPException(status_code=400, detail="No mission data to export")
+
+    try:
+        if format == "json":
+            report = farm_mission.generate_mission_report()
+
+            return JSONResponse(
+                content=report,
+                headers={
+                    "Content-Disposition": f"attachment; filename=mission_{report['mission_id']}.json"
+                }
+            )
+
+        elif format == "csv":
+            # Generate CSV of tree log
+            import csv
+            from io import StringIO
+
+            output = StringIO()
+            writer = csv.writer(output)
+
+            # Header
+            writer.writerow([
+                "Tree ID", "GPS X", "GPS Y", "Health Score",
+                "Status", "Diseases", "Canopy Area", "Confidence"
+            ])
+
+            # Data rows
+            for tree in farm_mission.mission_data["trees"]:
+                writer.writerow([
+                    tree["tree_id"],
+                    tree["gps_location"]["x"],
+                    tree["gps_location"]["y"],
+                    tree["health_score"],
+                    tree["status"],
+                    "; ".join(tree["diseases"]),
+                    tree["canopy_area"],
+                    tree["confidence"]
+                ])
+
+            csv_data = output.getvalue()
+
+            return StreamingResponse(
+                iter([csv_data]),
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": f"attachment; filename=mission_trees_{farm_mission.mission_data['mission_id']}.csv"
+                }
+            )
+
+        else:
+            raise HTTPException(status_code=400, detail="Invalid format. Use 'json' or 'csv'")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+
+@app.delete("/api/mission/reset")
+async def reset_mission():
+    """Reset/clear current mission data"""
+    global farm_mission
+    farm_mission = None
+
+    return {
+        "success": True,
+        "message": "Mission data cleared"
+    }
+
+
 # ===== RUN SERVER =====
 
 if __name__ == "__main__":
