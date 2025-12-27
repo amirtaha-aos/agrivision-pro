@@ -14,6 +14,16 @@ dist/
 downloads/
 eggs/
 .eggs/
+
+# ML/AI Models and Datasets
+backend/models/
+backend/datasets/
+backend/test_results/
+*.pt
+*.pth
+*.onnx
+*.weights
+runs/
 lib/
 lib64/
 parts/

@@ -6,7 +6,7 @@ Supports real-time telemetry streaming, mission control, and image processing
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import asyncio
@@ -18,6 +18,9 @@ from pymavlink import mavutil
 import threading
 import queue
 import base64
+from crop_health_detector import CropHealthDetector
+from io import BytesIO
+from PIL import Image
 
 # Initialize FastAPI
 app = FastAPI(
@@ -382,6 +385,9 @@ class MAVLinkConnection:
 # Global MAVLink instance
 mavlink_conn = None
 
+# Global Crop Health Detector instance
+crop_detector = None
+
 # =====================================================================
 # PYDANTIC MODELS
 # =====================================================================
@@ -411,9 +417,18 @@ async def startup_event():
     """
     Initialize on server startup
     """
+    global crop_detector
     print("="*60)
     print("AgriVision Pro Backend API Starting...")
     print("="*60)
+
+    # Initialize crop health detector
+    try:
+        crop_detector = CropHealthDetector()
+        print("✓ Crop Health Detector initialized")
+    except Exception as e:
+        print(f"⚠️ Warning: Crop Health Detector initialization failed: {e}")
+        print("   Image analysis features may be limited")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -731,6 +746,224 @@ async def calculate_mission_plan(config: MissionConfig):
             "passes": max(1, int(hectares / 2))
         }
     }
+
+# ===== CROP HEALTH ANALYSIS ENDPOINTS =====
+
+@app.post("/api/health/analyze")
+async def analyze_crop_health(
+    file: UploadFile = File(...),
+    crop_type: str = "apple"
+):
+    """
+    Analyze crop health from uploaded image
+
+    Args:
+        file: Image file from drone camera
+        crop_type: Type of crop ('apple' or 'soybean')
+
+    Returns:
+        Complete health analysis with report and visualization data
+    """
+    global crop_detector
+
+    if not crop_detector:
+        raise HTTPException(status_code=503, detail="Crop detector not initialized")
+
+    if crop_type not in ['apple', 'soybean']:
+        raise HTTPException(status_code=400, detail="Crop type must be 'apple' or 'soybean'")
+
+    try:
+        # Read image file
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+
+        # Perform analysis
+        results = crop_detector.analyze_farm_health(image, crop_type)
+
+        # Convert visualizations to base64 for transmission
+        def image_to_base64(img):
+            _, buffer = cv2.imencode('.jpg', img)
+            return base64.b64encode(buffer).decode('utf-8')
+
+        response = {
+            "status": "success",
+            "report": results['report'],
+            "visualizations": {
+                "health_map": image_to_base64(results['visualizations']['health_map']),
+                "contour_map": image_to_base64(results['visualizations']['contour_map']),
+            }
+        }
+
+        return response
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+@app.post("/api/health/detect")
+async def detect_diseases(
+    file: UploadFile = File(...),
+    crop_type: str = "apple",
+    confidence: float = 0.5
+):
+    """
+    Detect diseases in crop image (faster, detection only)
+
+    Args:
+        file: Image file
+        crop_type: 'apple' or 'soybean'
+        confidence: Detection confidence threshold (0.0-1.0)
+
+    Returns:
+        Disease detection results
+    """
+    global crop_detector
+
+    if not crop_detector:
+        raise HTTPException(status_code=503, detail="Crop detector not initialized")
+
+    if crop_type not in ['apple', 'soybean']:
+        raise HTTPException(status_code=400, detail="Crop type must be 'apple' or 'soybean'")
+
+    try:
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+
+        # Detect diseases
+        results = crop_detector.detect_diseases(image, crop_type, confidence)
+
+        return {
+            "status": "success",
+            "results": results
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+
+
+@app.get("/api/health/models")
+async def get_model_info():
+    """
+    Get information about loaded models
+    """
+    global crop_detector
+
+    if not crop_detector:
+        return {
+            "status": "error",
+            "message": "Crop detector not initialized"
+        }
+
+    return {
+        "status": "success",
+        "models": {
+            "apple": {
+                "loaded": crop_detector.models['apple'] is not None,
+                "classes": crop_detector.disease_classes['apple']
+            },
+            "soybean": {
+                "loaded": crop_detector.models['soybean'] is not None,
+                "classes": crop_detector.disease_classes['soybean']
+            }
+        }
+    }
+
+
+@app.post("/api/health/batch-analyze")
+async def batch_analyze(
+    files: List[UploadFile] = File(...),
+    crop_type: str = "apple"
+):
+    """
+    Analyze multiple images in batch
+
+    Args:
+        files: List of image files
+        crop_type: 'apple' or 'soybean'
+
+    Returns:
+        Aggregated farm health report
+    """
+    global crop_detector
+
+    if not crop_detector:
+        raise HTTPException(status_code=503, detail="Crop detector not initialized")
+
+    if crop_type not in ['apple', 'soybean']:
+        raise HTTPException(status_code=400, detail="Crop type must be 'apple' or 'soybean'")
+
+    try:
+        all_results = []
+        total_health = 0
+        all_diseases = {}
+        total_damaged_area = 0
+
+        for file in files:
+            contents = await file.read()
+            nparr = np.frombuffer(contents, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if image is None:
+                continue
+
+            # Analyze each image
+            results = crop_detector.analyze_farm_health(image, crop_type)
+            all_results.append({
+                "filename": file.filename,
+                "health": results['report']['overall_health'],
+                "status": results['report']['status']
+            })
+
+            total_health += results['report']['overall_health']
+
+            # Aggregate disease counts
+            for disease, count in results['report']['disease_summary'].items():
+                all_diseases[disease] = all_diseases.get(disease, 0) + count
+
+            total_damaged_area += results['report']['damaged_area_stats']['damage_percentage']
+
+        num_images = len(all_results)
+
+        if num_images == 0:
+            raise HTTPException(status_code=400, detail="No valid images provided")
+
+        avg_health = total_health / num_images
+        avg_damage = total_damaged_area / num_images
+
+        # Determine overall farm status
+        if avg_health >= 90:
+            farm_status = "Excellent"
+        elif avg_health >= 75:
+            farm_status = "Good"
+        elif avg_health >= 50:
+            farm_status = "Fair"
+        elif avg_health >= 25:
+            farm_status = "Poor"
+        else:
+            farm_status = "Critical"
+
+        return {
+            "status": "success",
+            "summary": {
+                "images_analyzed": num_images,
+                "average_health": round(avg_health, 2),
+                "average_damage": round(avg_damage, 2),
+                "farm_status": farm_status,
+                "total_diseases_detected": all_diseases,
+                "images": all_results
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
 
 # ===== RUN SERVER =====
 
