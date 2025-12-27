@@ -91,7 +91,7 @@ AgriVision Pro یک پلتفرم یکپارچه برای مدیریت پهپاد
 ### 1. کلون کردن پروژه
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/agrivision-pro.git
+git clone https://github.com/amirtaha-aos/agrivision-pro.git
 cd agrivision-pro
 ```
 
