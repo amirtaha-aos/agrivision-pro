@@ -18,7 +18,13 @@ from pymavlink import mavutil
 import threading
 import queue
 import base64
-from crop_health_detector import CropHealthDetector
+try:
+    from crop_health_detector import CropHealthDetector
+    CROP_HEALTH_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Crop health detector not available: {e}")
+    CROP_HEALTH_AVAILABLE = False
+    CropHealthDetector = None
 from io import BytesIO
 from PIL import Image
 
@@ -423,12 +429,16 @@ async def startup_event():
     print("="*60)
 
     # Initialize crop health detector
-    try:
-        crop_detector = CropHealthDetector()
-        print("✓ Crop Health Detector initialized")
-    except Exception as e:
-        print(f"⚠️ Warning: Crop Health Detector initialization failed: {e}")
-        print("   Image analysis features may be limited")
+    if CROP_HEALTH_AVAILABLE:
+        try:
+            crop_detector = CropHealthDetector()
+            print("✓ Crop Health Detector initialized")
+        except Exception as e:
+            print(f"⚠️ Warning: Crop Health Detector initialization failed: {e}")
+            print("   Image analysis features may be limited")
+    else:
+        print("⚠️ Warning: Ultralytics not available. Crop health features disabled.")
+        print("   Install ultralytics to enable crop health detection")
 
 @app.on_event("shutdown")
 async def shutdown_event():

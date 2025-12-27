@@ -6,7 +6,13 @@ Generates health maps and 2D contours of damaged areas
 
 import cv2
 import numpy as np
-from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+    YOLO_AVAILABLE = True
+except ImportError:
+    print("Warning: ultralytics not installed. Crop health detection disabled.")
+    YOLO_AVAILABLE = False
+    YOLO = None
 from PIL import Image
 import json
 from typing import Dict, List, Tuple
