@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { Upload, Image as ImageIcon, MapPin, TrendingUp, AlertTriangle, CheckCircle, Download, Loader, TreeDeciduous, Leaf } from 'lucide-react';
 
-const FarmScanner = () => {
+const FarmScanner = ({ darkMode = false, t = (key) => key }) => {
+  // Dark mode classes
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-green-50 to-blue-50';
+  const cardBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
+  const textClass = darkMode ? 'text-gray-100' : 'text-gray-800';
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-300';
+  const hoverClass = darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100';
+  const inputBgClass = darkMode ? 'bg-gray-700 text-white' : 'bg-white';
+  const stepBgActive = darkMode ? 'bg-green-600' : 'bg-green-500';
+  const stepBgInactive = darkMode ? 'bg-gray-700' : 'bg-gray-200';
+
   const [selectedCrop, setSelectedCrop] = useState('apple');
   const [uploadedImages, setUploadedImages] = useState([]);
   const [missionParams, setMissionParams] = useState({
