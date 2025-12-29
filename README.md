@@ -255,7 +255,7 @@ This project is licensed under the MIT License.
 ## 📧 Contact
 
 - **Issues:** [GitHub Issues](https://github.com/amirtaha-aos/agrivision-pro/issues)
-- **Email:** your-email@example.com
+- **Email:** amirhazzar6@gmail.com 
 
 ---
 
