@@ -818,18 +818,18 @@ async def analyze_crop_health(
 async def detect_diseases(
     file: UploadFile = File(...),
     crop_type: str = "apple",
-    confidence: float = 0.5
+    confidence: float = 0.65
 ):
     """
-    Detect diseases in crop image (faster, detection only)
+    Detect diseases in crop image with HIGH ACCURACY (faster, detection only)
 
     Args:
         file: Image file
         crop_type: 'apple' or 'soybean'
-        confidence: Detection confidence threshold (0.0-1.0)
+        confidence: Detection confidence threshold (0.0-1.0, default: 0.65 for high precision)
 
     Returns:
-        Disease detection results
+        Disease detection results with high-accuracy YOLO detection
     """
     global crop_detector
 

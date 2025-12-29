@@ -15,7 +15,6 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('single');
 
   const API_BASE_URL = 'http://localhost:8000';
 

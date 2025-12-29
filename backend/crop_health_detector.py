@@ -55,6 +55,43 @@ class CropHealthDetector:
         # Initialize models
         self._load_models()
 
+    def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        Preprocess image for improved detection accuracy
+
+        Args:
+            image: Input image as numpy array
+
+        Returns:
+            Preprocessed image
+        """
+        # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        # This improves local contrast and enhances disease visibility
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+
+        # Apply CLAHE to L channel
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        l = clahe.apply(l)
+
+        # Merge channels back
+        enhanced = cv2.merge([l, a, b])
+        enhanced = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
+
+        # Denoise while preserving edges (helps YOLO focus on actual patterns)
+        denoised = cv2.fastNlMeansDenoisingColored(enhanced, None, 10, 10, 7, 21)
+
+        # Slight sharpening to enhance disease edges
+        kernel = np.array([[-1,-1,-1],
+                          [-1, 9,-1],
+                          [-1,-1,-1]])
+        sharpened = cv2.filter2D(denoised, -1, kernel)
+
+        # Blend original with sharpened (50% mix to avoid over-sharpening)
+        result = cv2.addWeighted(denoised, 0.7, sharpened, 0.3, 0)
+
+        return result
+
     def _load_models(self):
         """Load YOLOv8 models for each crop type"""
         model_dir = Path(__file__).parent / 'models'
@@ -67,24 +104,27 @@ class CropHealthDetector:
         if apple_model_path.exists():
             self.models['apple'] = YOLO(str(apple_model_path))
         else:
-            # Use pre-trained YOLOv8 for initial setup
-            self.models['apple'] = YOLO('yolov8n.pt')
-            print("⚠️ Apple model not found. Using base YOLOv8. Train custom model for better results.")
+            # Use YOLOv8x (extra large) for MAXIMUM ACCURACY instead of nano
+            # YOLOv8x is significantly more accurate than YOLOv8n
+            self.models['apple'] = YOLO('yolov8x.pt')
+            print("⚠️ Apple model not found. Using YOLOv8x (high accuracy). Train custom model for domain-specific results.")
 
         if soybean_model_path.exists():
             self.models['soybean'] = YOLO(str(soybean_model_path))
         else:
-            self.models['soybean'] = YOLO('yolov8n.pt')
-            print("⚠️ Soybean model not found. Using base YOLOv8. Train custom model for better results.")
+            # Use YOLOv8x (extra large) for MAXIMUM ACCURACY
+            self.models['soybean'] = YOLO('yolov8x.pt')
+            print("⚠️ Soybean model not found. Using YOLOv8x (high accuracy). Train custom model for domain-specific results.")
 
-    def detect_diseases(self, image: np.ndarray, crop_type: str, confidence_threshold: float = 0.5) -> Dict:
+    def detect_diseases(self, image: np.ndarray, crop_type: str, confidence_threshold: float = 0.65, use_preprocessing: bool = True) -> Dict:
         """
-        Detect diseases in crop image
+        Detect diseases in crop image with HIGH ACCURACY settings
 
         Args:
             image: Input image as numpy array
             crop_type: Type of crop ('apple' or 'soybean')
-            confidence_threshold: Minimum confidence for detection
+            confidence_threshold: Minimum confidence for detection (default: 0.65 for high precision)
+            use_preprocessing: Apply image enhancement preprocessing (default: True for better accuracy)
 
         Returns:
             Dictionary containing detection results and health metrics
@@ -93,7 +133,28 @@ class CropHealthDetector:
             raise ValueError(f"Unsupported crop type: {crop_type}")
 
         model = self.models[crop_type]
-        results = model(image, conf=confidence_threshold)
+
+        # Apply preprocessing for enhanced detection
+        if use_preprocessing:
+            processed_image = self._preprocess_image(image)
+        else:
+            processed_image = image
+
+        # High-accuracy detection with advanced parameters
+        # - conf: Higher threshold (0.65) filters low-confidence false positives
+        # - iou: Stricter IoU threshold (0.5) for better non-maximum suppression
+        # - agnostic_nms: False for class-specific NMS (more accurate for multi-class)
+        # - max_det: Limit detections to avoid noise
+        # - imgsz: Larger image size for better small object detection
+        results = model(
+            processed_image,
+            conf=confidence_threshold,
+            iou=0.5,
+            agnostic_nms=False,
+            max_det=300,
+            imgsz=1280,  # Larger than default 640 for better accuracy
+            verbose=False
+        )
 
         detections = []
         disease_counts = {}

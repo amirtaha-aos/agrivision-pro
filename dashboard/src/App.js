@@ -3,7 +3,7 @@ import AgriculturalDroneDashboard from './AgriculturalDroneDashboard';
 import CropHealthMonitor from './CropHealthMonitor';
 import FarmScanner from './FarmScanner';
 import { Plane, Leaf, Map, Settings as SettingsIcon, Moon, Sun, Globe } from 'lucide-react';
-import { translations, getTranslation } from './translations';
+import { getTranslation } from './translations';
 
 function App() {
   const [activeView, setActiveView] = useState('scanner'); // drone, health, or scanner
