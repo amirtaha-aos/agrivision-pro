@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Upload, Image as ImageIcon, Leaf, TrendingUp, AlertTriangle, CheckCircle, XCircle, Loader } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, Image as ImageIcon, Leaf, TrendingUp, AlertTriangle, CheckCircle, XCircle, Loader, Cpu, Zap, Brain } from 'lucide-react';
 
 const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
   // Dark mode classes
@@ -10,6 +10,12 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
   const inputBgClass = darkMode ? 'bg-gray-700 text-white' : 'bg-white';
 
   const [selectedCrop, setSelectedCrop] = useState('apple');
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [loadingModels, setLoadingModels] = useState(true);
+  const [detectionMethod, setDetectionMethod] = useState('yolo'); // 'yolo' or 'custom'
+  const [availableMethods, setAvailableMethods] = useState([]);
+  const [loadingMethods, setLoadingMethods] = useState(true);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -17,6 +23,61 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
   const [error, setError] = useState(null);
 
   const API_BASE_URL = 'http://localhost:8000';
+
+  // Load available models and methods on mount
+  useEffect(() => {
+    fetchAvailableModels();
+    fetchDetectionMethods();
+  }, []);
+
+  const fetchDetectionMethods = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/detection-methods`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableMethods(data.methods || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch detection methods:', err);
+    } finally {
+      setLoadingMethods(false);
+    }
+  };
+
+  const fetchAvailableModels = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/models/list`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableModels(data.models || []);
+        if (data.models && data.models.length > 0) {
+          setSelectedModel(data.models[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch models:', err);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  const handleModelChange = async (modelId) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/models/select?model_id=${modelId}&crop_type=${selectedCrop}`,
+        { method: 'POST' }
+      );
+
+      if (response.ok) {
+        setSelectedModel(modelId);
+        setAnalysisResult(null); // Clear previous results
+      } else {
+        setError('Failed to switch model');
+      }
+    } catch (err) {
+      setError('Error switching model: ' + err.message);
+    }
+  };
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -44,21 +105,81 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
     const formData = new FormData();
     formData.append('file', uploadedImage);
 
+    // Choose endpoint based on detection method
+    let endpoint;
+    if (detectionMethod === 'scientific') {
+      endpoint = `${API_BASE_URL}/api/health/analyze-scientific?crop_type=${selectedCrop}`;
+    } else if (detectionMethod === 'custom') {
+      endpoint = `${API_BASE_URL}/api/health/analyze-custom?crop_type=${selectedCrop}`;
+    } else {
+      endpoint = `${API_BASE_URL}/api/health/analyze?crop_type=${selectedCrop}`;
+    }
+
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/health/analyze?crop_type=${selectedCrop}`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error(`${t('analysisFailed')}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      setAnalysisResult(data);
+
+      // Normalize response based on detection method
+      let normalizedData = data;
+      if (detectionMethod === 'scientific') {
+        // Convert scientific detector response to expected format
+        const diseaseSummary = {};
+
+        // Count diseases
+        if (data.diseases) {
+          data.diseases.forEach(d => {
+            const name = d.name || d.disease;
+            diseaseSummary[name] = (diseaseSummary[name] || 0) + 1;
+          });
+        }
+
+        // Add healthy if no diseases detected
+        if (Object.keys(diseaseSummary).length === 0) {
+          diseaseSummary['healthy'] = 1;
+        }
+
+        normalizedData = {
+          ...data,
+          report: {
+            overall_health: data.health_metrics?.health_score || 0,
+            status: data.health_metrics?.status_persian || data.summary?.status_persian || 'نامشخص',
+            disease_summary: diseaseSummary,
+            damaged_area_stats: null
+          },
+          visualization: data.visualization
+        };
+      } else if (detectionMethod === 'custom') {
+        // Convert custom detector response
+        const diseaseSummary = {};
+        if (data.disease_counts) {
+          Object.entries(data.disease_counts).forEach(([name, count]) => {
+            diseaseSummary[name] = count;
+          });
+        }
+        if (Object.keys(diseaseSummary).length === 0) {
+          diseaseSummary['healthy'] = data.healthy_count || 0;
+        }
+
+        normalizedData = {
+          ...data,
+          report: {
+            overall_health: data.health_percentage || 0,
+            status: data.status_label || 'Unknown',
+            disease_summary: diseaseSummary,
+            damaged_area_stats: null
+          }
+        };
+      }
+
+      setAnalysisResult(normalizedData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -137,6 +258,103 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                 </button>
               </div>
             </div>
+
+            {/* Detection Method Selection */}
+            <div className="mb-6">
+              <label className={`block text-sm font-medium ${textClass} mb-2 flex items-center gap-2`}>
+                <Brain className="w-4 h-4" />
+                Detection Method
+              </label>
+              {loadingMethods ? (
+                <div className={`${inputBgClass} rounded-lg p-3 flex items-center justify-center gap-2`}>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Loading methods...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {availableMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => {
+                        setDetectionMethod(method.id);
+                        setAnalysisResult(null);
+                      }}
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        detectionMethod === method.id
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : `border-gray-300 dark:border-gray-600 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-50'}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {method.id === 'yolo' ? (
+                          <Brain className="w-5 h-5 text-purple-500" />
+                        ) : method.id === 'scientific' ? (
+                          <Leaf className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <Zap className="w-5 h-5 text-orange-500" />
+                        )}
+                        <span className={`font-semibold ${textClass}`}>{method.name_persian || method.name}</span>
+                      </div>
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                        {method.description_persian || method.description}
+                      </p>
+                      <div className="text-xs space-y-1">
+                        <div className={`${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                          {method.pros.slice(0, 2).map((pro, i) => (
+                            <div key={i}>✓ {pro}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {detectionMethod && (
+                <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mt-2`}>
+                  {detectionMethod === 'yolo'
+                    ? '🧠 Using deep learning for maximum accuracy'
+                    : detectionMethod === 'scientific'
+                    ? '🔬 Research-based analysis with disease identification'
+                    : '⚡ Using classical computer vision for speed'}
+                </p>
+              )}
+            </div>
+
+            {/* Model Selection (only show for YOLO) */}
+            {detectionMethod === 'yolo' && (
+            <div className="mb-6">
+              <label className={`block text-sm font-medium ${textClass} mb-2 flex items-center gap-2`}>
+                <Cpu className="w-4 h-4" />
+                AI Model Selection
+              </label>
+              {loadingModels ? (
+                <div className={`${inputBgClass} rounded-lg p-3 flex items-center justify-center gap-2`}>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Loading models...</span>
+                </div>
+              ) : (
+                <select
+                  value={selectedModel || ''}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className={`w-full ${inputBgClass} border ${borderClass} rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                >
+                  {availableModels.length === 0 && (
+                    <option value="">No models available</option>
+                  )}
+                  {availableModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.type} - {model.size_mb} MB - {model.description}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {selectedModel && (
+                <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>
+                  💡 Smaller models are faster, larger models are more accurate
+                </p>
+              )}
+            </div>
+            )}
 
             {/* Image Upload Area */}
             <div className="mb-6">
@@ -280,7 +498,19 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                 <div>
                   <h3 className={`text-lg font-semibold ${textClass} mb-3`}>{t('healthVisualizations')}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    {analysisResult.visualizations.health_map && (
+                    {/* Show visualization from scientific/custom detectors */}
+                    {analysisResult.visualization && (
+                      <div className="col-span-2">
+                        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>Detection Result</p>
+                        <img
+                          src={`data:image/jpeg;base64,${analysisResult.visualization}`}
+                          alt="Detection Result"
+                          className={`w-full rounded-lg border-2 ${borderClass}`}
+                        />
+                      </div>
+                    )}
+                    {/* Show health map from YOLO detector */}
+                    {analysisResult.visualizations?.health_map && (
                       <div>
                         <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>{t('healthMap')}</p>
                         <img
@@ -290,7 +520,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                         />
                       </div>
                     )}
-                    {analysisResult.visualizations.contour_map && (
+                    {analysisResult.visualizations?.contour_map && (
                       <div>
                         <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>{t('contourMap')}</p>
                         <img

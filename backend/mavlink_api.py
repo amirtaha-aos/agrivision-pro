@@ -977,6 +977,328 @@ async def batch_analyze(
 
 
 # =====================================================================
+# MODEL MANAGEMENT ENDPOINTS
+# =====================================================================
+
+@app.get("/api/models/list")
+async def list_available_models():
+    """
+    Get list of available AI models for crop detection
+
+    Returns:
+        List of models with metadata (name, size, description)
+    """
+    from pathlib import Path
+
+    models_dir = Path('./models')
+    available_models = []
+
+    if models_dir.exists():
+        for model_file in models_dir.glob('*.pt'):
+            size_mb = model_file.stat().st_size / (1024 * 1024)
+
+            # Determine model type and description
+            if 'yolov8n' in model_file.name:
+                desc = "Fast and lightweight - Good for real-time processing"
+                model_type = "YOLOv8n"
+            elif 'yolov8s' in model_file.name:
+                desc = "Balanced speed and accuracy"
+                model_type = "YOLOv8s"
+            elif 'yolov8m' in model_file.name:
+                desc = "High accuracy - Medium speed"
+                model_type = "YOLOv8m"
+            elif 'yolov8x' in model_file.name:
+                desc = "Highest accuracy - Slower processing"
+                model_type = "YOLOv8x"
+            elif 'apple' in model_file.name:
+                desc = "Apple disease detection model"
+                model_type = "Custom Apple"
+            elif 'soybean' in model_file.name:
+                desc = "Soybean disease detection model"
+                model_type = "Custom Soybean"
+            else:
+                desc = "Custom trained model"
+                model_type = "Custom"
+
+            available_models.append({
+                'id': model_file.name,
+                'name': model_file.stem,
+                'type': model_type,
+                'size_mb': round(size_mb, 1),
+                'description': desc,
+                'path': str(model_file)
+            })
+
+    # Sort by size (smaller first for faster models)
+    available_models.sort(key=lambda x: x['size_mb'])
+
+    return {
+        'status': 'success',
+        'models': available_models,
+        'total': len(available_models)
+    }
+
+
+@app.post("/api/models/select")
+async def select_model(model_id: str, crop_type: str = "apple"):
+    """
+    Switch to a different AI model for detection
+
+    Args:
+        model_id: Model filename (e.g., 'yolov8m_pretrained.pt')
+        crop_type: Crop type ('apple' or 'soybean')
+
+    Returns:
+        Success status and model info
+    """
+    global crop_detector
+    from pathlib import Path
+
+    if not crop_detector:
+        raise HTTPException(status_code=503, detail="Crop detector not initialized")
+
+    models_dir = Path('./models')
+    model_path = models_dir / model_id
+
+    if not model_path.exists():
+        raise HTTPException(status_code=404, detail=f"Model not found: {model_id}")
+
+    try:
+        # Load new model
+        crop_detector.load_model(crop_type, str(model_path))
+
+        size_mb = model_path.stat().st_size / (1024 * 1024)
+
+        return {
+            'status': 'success',
+            'message': f'Switched to model: {model_id}',
+            'model': {
+                'id': model_id,
+                'name': model_path.stem,
+                'size_mb': round(size_mb, 1),
+                'crop_type': crop_type
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
+
+
+# =====================================================================
+# CUSTOM DISEASE DETECTION ENDPOINT
+# =====================================================================
+
+try:
+    from custom_disease_detector import CustomDiseaseDetector
+    CUSTOM_DETECTOR_AVAILABLE = True
+    custom_detector = CustomDiseaseDetector()
+    print("✓ Custom disease detector initialized")
+except ImportError as e:
+    print(f"Warning: Custom disease detector not available: {e}")
+    CUSTOM_DETECTOR_AVAILABLE = False
+    custom_detector = None
+
+
+@app.post("/api/health/analyze-custom")
+async def analyze_crop_custom(
+    file: UploadFile = File(...),
+    crop_type: str = "apple"
+):
+    """
+    Analyze crop health using CUSTOM computer vision (no deep learning)
+
+    This method uses classical image processing techniques:
+    - Color analysis in HSV space
+    - Texture feature extraction
+    - Morphological operations
+    - No training required, works immediately
+    - Lightweight and fast
+
+    Args:
+        file: Image file
+        crop_type: Type of crop ('apple' or 'soybean')
+
+    Returns:
+        Detection results with visualizations
+    """
+    if not CUSTOM_DETECTOR_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Custom detector not available")
+
+    try:
+        # Read image
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+
+        # Generate report
+        report = custom_detector.generate_health_report(image, crop_type)
+
+        # Encode visualization
+        _, buffer = cv2.imencode('.jpg', report['detection_results']['visualization'])
+        vis_base64 = base64.b64encode(buffer).decode('utf-8')
+
+        return {
+            'status': 'success',
+            'method': 'Custom Computer Vision',
+            'crop_type': crop_type,
+            'health_percentage': report['detection_results']['health_percentage'],
+            'status_label': report['detection_results']['status'],
+            'total_detections': report['detection_results']['total_detections'],
+            'healthy_count': report['detection_results']['healthy_count'],
+            'diseased_count': report['detection_results']['diseased_count'],
+            'disease_counts': report['detection_results']['disease_counts'],
+            'detections': report['detection_results']['detections'],
+            'recommendations': report['recommendations'],
+            'visualization': vis_base64
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+# =====================================================================
+# SCIENTIFIC APPLE DETECTOR (Research-based)
+# =====================================================================
+
+try:
+    from scientific_apple_detector import ScientificAppleDetector
+    SCIENTIFIC_DETECTOR_AVAILABLE = True
+    scientific_detector = ScientificAppleDetector()
+    print("✓ Scientific apple detector initialized (research-based)")
+except ImportError as e:
+    print(f"Warning: Scientific detector not available: {e}")
+    SCIENTIFIC_DETECTOR_AVAILABLE = False
+    scientific_detector = None
+
+
+@app.post("/api/health/analyze-scientific")
+async def analyze_crop_scientific(
+    file: UploadFile = File(...),
+    crop_type: str = "apple"
+):
+    """
+    Analyze crop health using SCIENTIFIC computer vision
+
+    Based on peer-reviewed research papers on plant pathology.
+    Uses validated color signatures and morphological patterns.
+
+    Detects:
+    - Apple Scab (Venturia inaequalis)
+    - Cedar Apple Rust (Gymnosporangium)
+    - Fire Blight (Erwinia amylovora)
+    - Powdery Mildew (Podosphaera leucotricha)
+    - Black Rot (Botryosphaeria obtusa)
+    - Alternaria Blotch
+    - Pests: Aphids, Spider Mites, Leaf Miners
+    - Leaf Conditions: Chlorosis, Necrosis, Anthocyanosis
+
+    Args:
+        file: Image file
+        crop_type: Type of crop (currently supports 'apple')
+
+    Returns:
+        Comprehensive analysis with diseases, pests, conditions, and recommendations
+    """
+    if not SCIENTIFIC_DETECTOR_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Scientific detector not available")
+
+    try:
+        # Read image
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+
+        # Analyze
+        results = scientific_detector.analyze_image(image)
+
+        # Encode visualization
+        _, buffer = cv2.imencode('.jpg', results['visualization'])
+        vis_base64 = base64.b64encode(buffer).decode('utf-8')
+
+        return {
+            'status': 'success',
+            'method': 'Scientific Analysis (Research-based)',
+            'crop_type': crop_type,
+            'health_metrics': results['health_metrics'],
+            'diseases': results['diseases'],
+            'pests': results['pests'],
+            'leaf_conditions': results['leaf_conditions'],
+            'recommendations': results['recommendations'],
+            'summary': results['summary'],
+            'visualization': vis_base64
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scientific analysis failed: {str(e)}")
+
+
+@app.get("/api/detection-methods")
+async def get_detection_methods():
+    """
+    Get available detection methods
+
+    Returns:
+        List of detection methods with descriptions
+    """
+    methods = []
+
+    # YOLO method (check if crop_detector is available)
+    if crop_detector is not None:
+        methods.append({
+            'id': 'yolo',
+            'name': 'YOLO Deep Learning',
+            'name_persian': 'یادگیری عمیق YOLO',
+            'description': 'State-of-the-art deep learning detection',
+            'description_persian': 'تشخیص با شبکه عصبی عمیق',
+            'pros': ['Very high accuracy', 'Handles complex scenes', 'Robust to variations'],
+            'cons': ['Requires trained model', 'Slower processing', 'GPU recommended'],
+            'endpoint': '/api/health/analyze'
+        })
+
+    # Scientific method (NEW)
+    if SCIENTIFIC_DETECTOR_AVAILABLE:
+        methods.append({
+            'id': 'scientific',
+            'name': 'Scientific Analysis',
+            'name_persian': 'تحلیل علمی',
+            'description': 'Research-based detection using validated signatures',
+            'description_persian': 'تشخیص مبتنی بر مقالات علمی و امضاهای معتبر رنگی',
+            'pros': ['Based on research papers', 'Detailed disease info', 'Treatment recommendations', 'No training needed'],
+            'cons': ['Apple-specific', 'Requires good lighting'],
+            'endpoint': '/api/health/analyze-scientific',
+            'supported_diseases': [
+                'Apple Scab', 'Cedar Apple Rust', 'Fire Blight',
+                'Powdery Mildew', 'Black Rot', 'Alternaria Blotch'
+            ],
+            'supported_pests': ['Aphids', 'Spider Mites', 'Leaf Miners']
+        })
+
+    # Custom method
+    if CUSTOM_DETECTOR_AVAILABLE:
+        methods.append({
+            'id': 'custom',
+            'name': 'Custom Computer Vision',
+            'name_persian': 'پردازش تصویر سفارشی',
+            'description': 'Classical image processing techniques',
+            'description_persian': 'تکنیک‌های کلاسیک پردازش تصویر',
+            'pros': ['No training required', 'Fast processing', 'Works on CPU', 'Interpretable'],
+            'cons': ['Lower accuracy', 'Sensitive to lighting', 'Fixed disease signatures'],
+            'endpoint': '/api/health/analyze-custom'
+        })
+
+    return {
+        'status': 'success',
+        'methods': methods,
+        'total': len(methods)
+    }
+
+
+# =====================================================================
 # FARM MISSION ENDPOINTS
 # =====================================================================
 

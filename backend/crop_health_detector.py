@@ -116,6 +116,24 @@ class CropHealthDetector:
             self.models['soybean'] = YOLO('yolov8x.pt')
             print("⚠️ Soybean model not found. Using YOLOv8x (high accuracy). Train custom model for domain-specific results.")
 
+    def load_model(self, crop_type: str, model_path: str):
+        """
+        Load a specific model for a crop type
+
+        Args:
+            crop_type: Type of crop ('apple' or 'soybean')
+            model_path: Path to the model file
+        """
+        if crop_type not in self.models:
+            raise ValueError(f"Unsupported crop type: {crop_type}")
+
+        if not YOLO_AVAILABLE:
+            raise RuntimeError("YOLO not available")
+
+        # Load the new model
+        self.models[crop_type] = YOLO(model_path)
+        print(f"✓ Loaded model for {crop_type}: {model_path}")
+
     def detect_diseases(self, image: np.ndarray, crop_type: str, confidence_threshold: float = 0.65, use_preprocessing: bool = True) -> Dict:
         """
         Detect diseases in crop image with HIGH ACCURACY settings
