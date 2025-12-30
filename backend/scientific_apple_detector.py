@@ -18,51 +18,129 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 import math
+
+
+class PlantPart(Enum):
+    """Plant parts for localized analysis"""
+    LEAF = "leaf"
+    FRUIT = "fruit"
+    STEM = "stem"
+    TRUNK = "trunk"
+    BARK = "bark"
+    ROOT_CROWN = "root_crown"
 
 
 class DiseaseType(Enum):
     """Apple tree diseases based on scientific classification"""
+    # General
     HEALTHY = "healthy"
+
+    # === LEAF DISEASES ===
     APPLE_SCAB = "apple_scab"                    # Venturia inaequalis
     CEDAR_APPLE_RUST = "cedar_apple_rust"        # Gymnosporangium juniperi-virginianae
-    FIRE_BLIGHT = "fire_blight"                  # Erwinia amylovora
     POWDERY_MILDEW = "powdery_mildew"            # Podosphaera leucotricha
-    BLACK_ROT = "black_rot"                      # Botryosphaeria obtusa
     ALTERNARIA_BLOTCH = "alternaria_blotch"      # Alternaria mali
     FROGEYE_LEAF_SPOT = "frogeye_leaf_spot"      # Botryosphaeria obtusa
+    MARSSONINA_BLOTCH = "marssonina_blotch"      # Marssonina coronaria
+    PHYLLOSTICTA_LEAF_SPOT = "phyllosticta"      # Phyllosticta spp.
+
+    # === FRUIT DISEASES ===
     SOOTY_BLOTCH = "sooty_blotch"                # Peltaster fructicola complex
     FLYSPECK = "flyspeck"                        # Schizothyrium pomi
+    BITTER_PIT = "bitter_pit"                    # Calcium deficiency disorder
+    CORK_SPOT = "cork_spot"                      # Calcium/boron deficiency
+    WATER_CORE = "water_core"                    # Sorbitol accumulation
+    JONATHAN_SPOT = "jonathan_spot"              # Physiological disorder
+    LENTICEL_BLOTCH_PIT = "lenticel_blotch_pit" # Storage disorder
+    FRUIT_SCAB = "fruit_scab"                    # Venturia inaequalis on fruit
+    BLACK_ROT_FRUIT = "black_rot_fruit"          # Botryosphaeria obtusa
+    WHITE_ROT = "white_rot"                      # Botryosphaeria dothidea
+    MOLDY_CORE = "moldy_core"                    # Various fungi
+    BLUE_MOLD = "blue_mold"                      # Penicillium expansum
+
+    # === TRUNK & BARK DISEASES ===
+    FIRE_BLIGHT = "fire_blight"                  # Erwinia amylovora
+    BLACK_ROT = "black_rot"                      # Botryosphaeria obtusa
+    APPLE_CANKER = "apple_canker"                # Neonectria ditissima
+    COLLAR_ROT = "collar_rot"                    # Phytophthora cactorum
+    CROWN_ROT = "crown_rot"                      # Phytophthora spp.
+    PERENNIAL_CANKER = "perennial_canker"        # Neofabraea perennans
+    ANTHRACNOSE_CANKER = "anthracnose_canker"    # Pezicula malicorticis
+    SILVER_LEAF = "silver_leaf"                  # Chondrostereum purpureum
+    PAPERY_BARK = "papery_bark"                  # Physiological
+    ROUGH_BARK = "rough_bark"                    # Apple Stem Grooving Virus
+
+    # === STEM & BRANCH DISEASES ===
+    BLISTER_CANKER = "blister_canker"            # Numularia discreta
+    CYTOSPORA_CANKER = "cytospora_canker"        # Cytospora spp.
+    PHOMOPSIS_CANKER = "phomopsis_canker"        # Phomopsis mali
+
+    # === VIRAL DISEASES ===
+    APPLE_MOSAIC_VIRUS = "apple_mosaic_virus"    # ApMV
+    CHLOROTIC_LEAF_SPOT = "chlorotic_leaf_spot"  # ACLSV
+    STEM_GROOVING = "stem_grooving"              # ASGV
+    STEM_PITTING = "stem_pitting"                # ASPV
 
 
 class PestType(Enum):
     """Apple tree pests"""
     NONE = "none"
+    # Sap-sucking insects
     APHIDS = "aphids"                            # Aphis pomi
+    WOOLLY_APHID = "woolly_aphid"                # Eriosoma lanigerum
     SPIDER_MITES = "spider_mites"                # Panonychus ulmi
+    EUROPEAN_RED_MITE = "european_red_mite"      # Panonychus ulmi
+    SAN_JOSE_SCALE = "san_jose_scale"            # Quadraspidiotus perniciosus
+    OYSTERSHELL_SCALE = "oystershell_scale"      # Lepidosaphes ulmi
+
+    # Leaf-feeding insects
     LEAF_MINERS = "leaf_miners"                  # Phyllonorycter spp.
+    LEAF_ROLLERS = "leaf_rollers"                # Archips spp.
+    TENT_CATERPILLARS = "tent_caterpillars"      # Malacosoma spp.
+    JAPANESE_BEETLE = "japanese_beetle"          # Popillia japonica
+
+    # Fruit-damaging insects
     APPLE_MAGGOT = "apple_maggot"                # Rhagoletis pomonella
+    CODLING_MOTH = "codling_moth"                # Cydia pomonella
+    APPLE_SAWFLY = "apple_sawfly"                # Hoplocampa testudinea
+    PLUM_CURCULIO = "plum_curculio"              # Conotrachelus nenuphar
+
+    # Trunk & bark pests
+    FLATHEAD_BORER = "flathead_borer"            # Chrysobothris femorata
+    ROUNDHEAD_BORER = "roundhead_borer"          # Saperda candida
+    BARK_BEETLE = "bark_beetle"                  # Scolytus spp.
 
 
 class LeafCondition(Enum):
     """Leaf physiological conditions"""
     NORMAL = "normal"
-    CHLOROSIS = "chlorosis"          # Yellowing - nutrient deficiency
-    NECROSIS = "necrosis"            # Tissue death
-    ANTHOCYANOSIS = "anthocyanosis"  # Purple/red - stress response
-    WILTING = "wilting"              # Water stress
+    CHLOROSIS = "chlorosis"              # Yellowing - nutrient deficiency
+    INTERVEINAL_CHLOROSIS = "interveinal_chlorosis"  # Yellow between veins
+    NECROSIS = "necrosis"                # Tissue death
+    MARGINAL_NECROSIS = "marginal_necrosis"  # Edge browning
+    ANTHOCYANOSIS = "anthocyanosis"      # Purple/red - stress response
+    WILTING = "wilting"                  # Water stress
+    BRONZING = "bronzing"                # Bronze discoloration
+    SILVERING = "silvering"              # Silver sheen (virus/fungus)
+    CURLING = "curling"                  # Leaf curl
+    SCORCHING = "scorching"              # Heat/salt damage
 
 
 @dataclass
 class DiseaseSignature:
     """Scientific color signature for disease detection"""
     name: str
+    plant_part: PlantPart              # Where disease appears
     hsv_ranges: List[Tuple[np.ndarray, np.ndarray]]
     texture_features: Dict[str, float]
     morphology: Dict[str, any]
     severity_thresholds: Dict[str, float]
     description: str
     treatment: str
+    scientific_name: str = ""           # Latin pathogen name
+    symptoms: List[str] = None          # Detailed symptoms list
 
 
 class ScientificAppleDetector:
@@ -87,176 +165,438 @@ class ScientificAppleDetector:
         Color ranges derived from:
         - "Spectral Analysis of Plant Diseases" (2021)
         - "HSV Color Space for Plant Pathology" (2019)
+        - "Apple Fruit Disease Detection" (Plant Pathology Journal, 2020)
+        - "Bark and Trunk Disease Identification" (2022)
         """
         self.disease_signatures = {
+            # ==================== HEALTHY ====================
             DiseaseType.HEALTHY: DiseaseSignature(
                 name="Healthy",
+                plant_part=PlantPart.LEAF,
                 hsv_ranges=[
-                    # Healthy green leaf - validated range
                     (np.array([35, 40, 40]), np.array([85, 255, 255]))
                 ],
-                texture_features={
-                    'uniformity': 0.8,      # High uniformity
-                    'contrast': 0.3,        # Low contrast
-                    'entropy': 0.4          # Moderate entropy
-                },
-                morphology={
-                    'circularity': None,    # No lesions
-                    'min_area': 500
-                },
+                texture_features={'uniformity': 0.8, 'contrast': 0.3, 'entropy': 0.4},
+                morphology={'circularity': None, 'min_area': 500},
                 severity_thresholds={'min': 0.0, 'max': 0.05},
                 description="Uniform green coloration with no visible lesions",
-                treatment="No treatment needed - maintain regular care"
+                treatment="No treatment needed - maintain regular care",
+                scientific_name="",
+                symptoms=["Uniform green color", "No spots or lesions", "Normal leaf shape"]
             ),
 
+            # ==================== LEAF DISEASES ====================
             DiseaseType.APPLE_SCAB: DiseaseSignature(
-                name="Apple Scab",
+                name="Apple Scab (Leaf)",
+                plant_part=PlantPart.LEAF,
                 hsv_ranges=[
-                    # Olive-green to dark brown lesions
-                    # Based on Venturia inaequalis infection patterns
-                    (np.array([25, 30, 20]), np.array([45, 180, 100])),
-                    # Dark brown mature lesions
-                    (np.array([10, 50, 20]), np.array([25, 200, 80])),
+                    (np.array([25, 30, 20]), np.array([45, 180, 100])),  # Olive-green lesions
+                    (np.array([10, 50, 20]), np.array([25, 200, 80])),   # Dark brown mature
                 ],
-                texture_features={
-                    'uniformity': 0.4,
-                    'contrast': 0.7,
-                    'entropy': 0.6
-                },
-                morphology={
-                    'circularity': (0.3, 0.9),   # Irregular to circular
-                    'min_area': 50,
-                    'max_area': 5000
-                },
+                texture_features={'uniformity': 0.4, 'contrast': 0.7, 'entropy': 0.6},
+                morphology={'circularity': (0.3, 0.9), 'min_area': 50, 'max_area': 5000},
                 severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.30},
-                description="Olive-green to brown velvety lesions, often with feathery edges",
-                treatment="Apply fungicides (Captan, Mancozeb). Remove fallen leaves. Prune for air circulation."
+                description="Olive-green to brown velvety lesions with feathery edges",
+                treatment="Apply fungicides (Captan, Mancozeb). Remove fallen leaves. Prune for air circulation.",
+                scientific_name="Venturia inaequalis",
+                symptoms=["Olive-green velvety spots", "Brown lesions with feathery margins", "Leaf curling", "Premature defoliation"]
             ),
 
             DiseaseType.CEDAR_APPLE_RUST: DiseaseSignature(
                 name="Cedar Apple Rust",
+                plant_part=PlantPart.LEAF,
                 hsv_ranges=[
-                    # Bright orange-yellow spots (upper side)
-                    (np.array([5, 150, 150]), np.array([25, 255, 255])),
-                    # Orange-red lesions
-                    (np.array([0, 120, 120]), np.array([10, 255, 255])),
-                    # Yellow halo around lesions
-                    (np.array([20, 100, 150]), np.array([35, 255, 255])),
+                    (np.array([5, 150, 150]), np.array([25, 255, 255])),   # Bright orange-yellow
+                    (np.array([0, 120, 120]), np.array([10, 255, 255])),   # Orange-red
+                    (np.array([20, 100, 150]), np.array([35, 255, 255])),  # Yellow halo
                 ],
-                texture_features={
-                    'uniformity': 0.5,
-                    'contrast': 0.8,
-                    'entropy': 0.5
-                },
-                morphology={
-                    'circularity': (0.6, 1.0),   # Typically circular
-                    'min_area': 30,
-                    'max_area': 2000
-                },
+                texture_features={'uniformity': 0.5, 'contrast': 0.8, 'entropy': 0.5},
+                morphology={'circularity': (0.6, 1.0), 'min_area': 30, 'max_area': 2000},
                 severity_thresholds={'low': 0.03, 'medium': 0.10, 'high': 0.25},
-                description="Bright orange-yellow circular spots with red border, may have tube-like projections underneath",
-                treatment="Remove nearby juniper/cedar trees. Apply fungicides in spring (Myclobutanil)."
-            ),
-
-            DiseaseType.FIRE_BLIGHT: DiseaseSignature(
-                name="Fire Blight",
-                hsv_ranges=[
-                    # Blackened/scorched tissue
-                    (np.array([0, 0, 0]), np.array([180, 100, 40])),
-                    # Dark brown dead tissue
-                    (np.array([0, 30, 20]), np.array([20, 150, 60])),
-                ],
-                texture_features={
-                    'uniformity': 0.3,
-                    'contrast': 0.9,
-                    'entropy': 0.7
-                },
-                morphology={
-                    'circularity': (0.1, 0.5),   # Irregular patterns
-                    'min_area': 200,
-                    'max_area': None  # Can affect entire branches
-                },
-                severity_thresholds={'low': 0.10, 'medium': 0.30, 'high': 0.50},
-                description="Blackened, scorched appearance. Leaves appear burnt. Characteristic shepherd's crook in shoots.",
-                treatment="URGENT: Prune 12+ inches below infection. Sterilize tools. Apply copper sprays. Remove severely infected trees."
+                description="Bright orange-yellow circular spots with red border and tube-like projections",
+                treatment="Remove nearby juniper/cedar trees. Apply fungicides in spring (Myclobutanil).",
+                scientific_name="Gymnosporangium juniperi-virginianae",
+                symptoms=["Bright orange-yellow spots", "Red border around lesions", "Tube-like projections on underside", "Yellow halo"]
             ),
 
             DiseaseType.POWDERY_MILDEW: DiseaseSignature(
                 name="Powdery Mildew",
+                plant_part=PlantPart.LEAF,
                 hsv_ranges=[
-                    # White powdery coating
-                    (np.array([0, 0, 180]), np.array([180, 40, 255])),
-                    # Grayish-white patches
-                    (np.array([0, 0, 150]), np.array([180, 60, 220])),
+                    (np.array([0, 0, 180]), np.array([180, 40, 255])),   # White powdery
+                    (np.array([0, 0, 150]), np.array([180, 60, 220])),   # Grayish-white
                 ],
-                texture_features={
-                    'uniformity': 0.6,
-                    'contrast': 0.5,
-                    'entropy': 0.4
-                },
-                morphology={
-                    'circularity': (0.2, 0.8),
-                    'min_area': 100,
-                    'max_area': 10000
-                },
+                texture_features={'uniformity': 0.6, 'contrast': 0.5, 'entropy': 0.4},
+                morphology={'circularity': (0.2, 0.8), 'min_area': 100, 'max_area': 10000},
                 severity_thresholds={'low': 0.05, 'medium': 0.20, 'high': 0.40},
-                description="White to gray powdery patches on leaves, shoots, and fruit. Leaves may curl.",
-                treatment="Apply sulfur-based fungicides. Improve air circulation. Remove infected shoots."
-            ),
-
-            DiseaseType.BLACK_ROT: DiseaseSignature(
-                name="Black Rot",
-                hsv_ranges=[
-                    # Purple-brown margins
-                    (np.array([140, 30, 30]), np.array([170, 150, 100])),
-                    # Brown center with concentric rings
-                    (np.array([8, 80, 40]), np.array([20, 200, 120])),
-                    # Dark necrotic center
-                    (np.array([0, 0, 10]), np.array([180, 80, 60])),
-                ],
-                texture_features={
-                    'uniformity': 0.35,
-                    'contrast': 0.85,
-                    'entropy': 0.65
-                },
-                morphology={
-                    'circularity': (0.5, 0.95),  # "Frog-eye" appearance
-                    'min_area': 80,
-                    'max_area': 3000
-                },
-                severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.35},
-                description="Circular brown lesions with purple margins. Characteristic 'frog-eye' pattern with concentric rings.",
-                treatment="Remove mummified fruit and dead wood. Apply fungicides (Captan). Maintain tree vigor."
+                description="White to gray powdery patches on leaves and shoots",
+                treatment="Apply sulfur-based fungicides. Improve air circulation. Remove infected shoots.",
+                scientific_name="Podosphaera leucotricha",
+                symptoms=["White powdery coating", "Leaf curling", "Stunted growth", "Distorted leaves"]
             ),
 
             DiseaseType.ALTERNARIA_BLOTCH: DiseaseSignature(
                 name="Alternaria Leaf Blotch",
+                plant_part=PlantPart.LEAF,
                 hsv_ranges=[
-                    # Brown lesions with yellow halo
-                    (np.array([10, 60, 40]), np.array([25, 180, 140])),
-                    # Yellow chlorotic halo
-                    (np.array([20, 80, 120]), np.array([35, 200, 220])),
+                    (np.array([10, 60, 40]), np.array([25, 180, 140])),   # Brown lesions
+                    (np.array([20, 80, 120]), np.array([35, 200, 220])),  # Yellow halo
                 ],
-                texture_features={
-                    'uniformity': 0.45,
-                    'contrast': 0.7,
-                    'entropy': 0.55
-                },
-                morphology={
-                    'circularity': (0.4, 0.9),
-                    'min_area': 60,
-                    'max_area': 2500
-                },
+                texture_features={'uniformity': 0.45, 'contrast': 0.7, 'entropy': 0.55},
+                morphology={'circularity': (0.4, 0.9), 'min_area': 60, 'max_area': 2500},
                 severity_thresholds={'low': 0.05, 'medium': 0.18, 'high': 0.35},
-                description="Brown spots with yellow halos. Lesions may have concentric zonation. Often starts at leaf tips.",
-                treatment="Apply fungicides. Remove fallen leaves. Avoid overhead irrigation."
+                description="Brown spots with yellow halos and concentric zonation",
+                treatment="Apply fungicides. Remove fallen leaves. Avoid overhead irrigation.",
+                scientific_name="Alternaria mali",
+                symptoms=["Brown circular spots", "Yellow chlorotic halo", "Concentric rings", "Starts at leaf tips"]
+            ),
+
+            DiseaseType.FROGEYE_LEAF_SPOT: DiseaseSignature(
+                name="Frogeye Leaf Spot",
+                plant_part=PlantPart.LEAF,
+                hsv_ranges=[
+                    (np.array([8, 80, 40]), np.array([20, 200, 120])),    # Tan/brown center
+                    (np.array([140, 30, 30]), np.array([170, 150, 100])), # Purple margin
+                ],
+                texture_features={'uniformity': 0.35, 'contrast': 0.85, 'entropy': 0.65},
+                morphology={'circularity': (0.5, 0.95), 'min_area': 80, 'max_area': 3000},
+                severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.35},
+                description="Circular tan/brown lesions with distinct purple margins - frog-eye appearance",
+                treatment="Remove mummified fruit and dead wood. Apply fungicides (Captan).",
+                scientific_name="Botryosphaeria obtusa",
+                symptoms=["Circular tan center", "Purple-brown margin", "Frog-eye appearance", "Concentric rings"]
+            ),
+
+            DiseaseType.MARSSONINA_BLOTCH: DiseaseSignature(
+                name="Marssonina Blotch",
+                plant_part=PlantPart.LEAF,
+                hsv_ranges=[
+                    (np.array([15, 50, 40]), np.array([30, 180, 130])),   # Brown blotches
+                    (np.array([0, 0, 20]), np.array([180, 60, 80])),      # Dark center
+                ],
+                texture_features={'uniformity': 0.4, 'contrast': 0.75, 'entropy': 0.6},
+                morphology={'circularity': (0.3, 0.8), 'min_area': 100, 'max_area': 4000},
+                severity_thresholds={'low': 0.08, 'medium': 0.20, 'high': 0.40},
+                description="Irregular brown blotches with dark acervuli, causing premature defoliation",
+                treatment="Apply fungicides (Dodine, Captan). Rake and destroy fallen leaves.",
+                scientific_name="Marssonina coronaria",
+                symptoms=["Irregular brown blotches", "Dark spots (acervuli)", "Premature leaf drop", "Yellowing around lesions"]
+            ),
+
+            DiseaseType.APPLE_MOSAIC_VIRUS: DiseaseSignature(
+                name="Apple Mosaic Virus",
+                plant_part=PlantPart.LEAF,
+                hsv_ranges=[
+                    (np.array([20, 40, 140]), np.array([35, 150, 255])),  # Cream/pale yellow patches
+                    (np.array([25, 20, 160]), np.array([40, 100, 230])),  # Light mottling
+                ],
+                texture_features={'uniformity': 0.5, 'contrast': 0.6, 'entropy': 0.5},
+                morphology={'circularity': (0.2, 0.7), 'min_area': 200, 'max_area': 8000},
+                severity_thresholds={'low': 0.10, 'medium': 0.25, 'high': 0.45},
+                description="Cream to pale yellow irregular patches creating mosaic pattern",
+                treatment="No cure. Remove and destroy infected trees. Use virus-free planting material.",
+                scientific_name="ApMV (Apple Mosaic Virus)",
+                symptoms=["Cream-colored patches", "Yellow mottling", "Mosaic pattern", "Reduced vigor"]
+            ),
+
+            # ==================== FRUIT DISEASES ====================
+            DiseaseType.FRUIT_SCAB: DiseaseSignature(
+                name="Apple Scab (Fruit)",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([0, 0, 10]), np.array([180, 80, 60])),      # Dark scab lesions
+                    (np.array([15, 40, 30]), np.array([35, 150, 100])),   # Olive-brown
+                ],
+                texture_features={'uniformity': 0.3, 'contrast': 0.8, 'entropy': 0.7},
+                morphology={'circularity': (0.4, 0.9), 'min_area': 40, 'max_area': 3000},
+                severity_thresholds={'low': 0.03, 'medium': 0.10, 'high': 0.25},
+                description="Dark, corky, rough lesions on fruit surface causing cracking and deformation",
+                treatment="Apply fungicides during growing season. Remove infected fruit.",
+                scientific_name="Venturia inaequalis",
+                symptoms=["Dark corky lesions", "Rough texture", "Fruit cracking", "Deformed fruit"]
+            ),
+
+            DiseaseType.SOOTY_BLOTCH: DiseaseSignature(
+                name="Sooty Blotch",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([25, 20, 30]), np.array([50, 100, 80])),    # Olive-green smudges
+                    (np.array([0, 0, 20]), np.array([180, 50, 70])),      # Dark sooty patches
+                ],
+                texture_features={'uniformity': 0.35, 'contrast': 0.6, 'entropy': 0.55},
+                morphology={'circularity': (0.2, 0.6), 'min_area': 100, 'max_area': 15000},
+                severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.35},
+                description="Olive-green to black smudgy patches on fruit surface - superficial fungal growth",
+                treatment="Improve air circulation. Apply fungicides. Cosmetic issue - fruit still edible.",
+                scientific_name="Peltaster fructicola complex",
+                symptoms=["Olive-green smudges", "Dark cloudy patches", "Irregular margins", "Surface blemish only"]
+            ),
+
+            DiseaseType.FLYSPECK: DiseaseSignature(
+                name="Flyspeck",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([0, 0, 0]), np.array([180, 80, 50])),       # Black shiny dots
+                ],
+                texture_features={'uniformity': 0.25, 'contrast': 0.9, 'entropy': 0.7},
+                morphology={'circularity': (0.7, 1.0), 'min_area': 5, 'max_area': 100},
+                severity_thresholds={'low': 0.02, 'medium': 0.08, 'high': 0.20},
+                description="Groups of tiny, shiny black dots on fruit surface like fly specks",
+                treatment="Improve air circulation. Apply fungicides. Fruit still edible after wiping.",
+                scientific_name="Schizothyrium pomi",
+                symptoms=["Tiny black dots", "Shiny appearance", "Grouped in clusters", "Superficial only"]
+            ),
+
+            DiseaseType.BITTER_PIT: DiseaseSignature(
+                name="Bitter Pit",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([8, 60, 40]), np.array([22, 180, 120])),    # Sunken brown spots
+                    (np.array([0, 0, 30]), np.array([20, 100, 80])),      # Dark pitted areas
+                ],
+                texture_features={'uniformity': 0.4, 'contrast': 0.75, 'entropy': 0.6},
+                morphology={'circularity': (0.5, 0.9), 'min_area': 20, 'max_area': 500},
+                severity_thresholds={'low': 0.02, 'medium': 0.08, 'high': 0.20},
+                description="Sunken, brown, corky spots 2-10mm diameter, usually near calyx end",
+                treatment="Calcium sprays during growing season. Maintain even watering. Avoid excessive nitrogen.",
+                scientific_name="Physiological disorder (Calcium deficiency)",
+                symptoms=["Sunken brown spots", "Corky tissue underneath", "Near calyx end", "Bitter taste"]
+            ),
+
+            DiseaseType.CORK_SPOT: DiseaseSignature(
+                name="Cork Spot",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([10, 40, 50]), np.array([25, 150, 130])),   # Brown cork areas
+                    (np.array([35, 30, 60]), np.array([50, 120, 140])),   # Green with dimples
+                ],
+                texture_features={'uniformity': 0.45, 'contrast': 0.65, 'entropy': 0.5},
+                morphology={'circularity': (0.4, 0.85), 'min_area': 30, 'max_area': 800},
+                severity_thresholds={'low': 0.03, 'medium': 0.10, 'high': 0.25},
+                description="External dimpling with internal brown corky tissue",
+                treatment="Calcium and boron applications. Consistent irrigation. Soil pH management.",
+                scientific_name="Physiological disorder (Ca/B deficiency)",
+                symptoms=["Surface dimpling", "Corky brown tissue inside", "Irregular depressions", "Similar to bitter pit"]
+            ),
+
+            DiseaseType.WATER_CORE: DiseaseSignature(
+                name="Water Core",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([20, 15, 150]), np.array([40, 60, 220])),   # Translucent/glassy areas
+                ],
+                texture_features={'uniformity': 0.6, 'contrast': 0.4, 'entropy': 0.35},
+                morphology={'circularity': (0.3, 0.7), 'min_area': 500, 'max_area': 20000},
+                severity_thresholds={'low': 0.10, 'medium': 0.25, 'high': 0.50},
+                description="Translucent, water-soaked, glassy appearance of fruit flesh",
+                treatment="Harvest at proper maturity. Avoid late harvest. Proper storage conditions.",
+                scientific_name="Physiological disorder (Sorbitol accumulation)",
+                symptoms=["Glassy/translucent flesh", "Water-soaked appearance", "Around vascular bundles", "Sweet initially, then breakdown"]
+            ),
+
+            DiseaseType.BLACK_ROT_FRUIT: DiseaseSignature(
+                name="Black Rot (Fruit)",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([0, 0, 0]), np.array([180, 80, 40])),       # Black rotted area
+                    (np.array([8, 60, 30]), np.array([20, 180, 100])),    # Brown rot advancing
+                ],
+                texture_features={'uniformity': 0.25, 'contrast': 0.9, 'entropy': 0.75},
+                morphology={'circularity': (0.4, 0.9), 'min_area': 100, 'max_area': None},
+                severity_thresholds={'low': 0.05, 'medium': 0.20, 'high': 0.40},
+                description="Brown to black firm rot starting at blossom end, with concentric rings",
+                treatment="Remove mummified fruit. Prune dead wood. Apply fungicides.",
+                scientific_name="Botryosphaeria obtusa",
+                symptoms=["Brown rot spreading from calyx", "Black when advanced", "Concentric rings", "Mummified fruit"]
+            ),
+
+            DiseaseType.WHITE_ROT: DiseaseSignature(
+                name="White Rot (Bot Rot)",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([10, 30, 80]), np.array([25, 150, 180])),   # Tan/light brown rot
+                    (np.array([0, 0, 120]), np.array([20, 60, 200])),     # Cream/white areas
+                ],
+                texture_features={'uniformity': 0.35, 'contrast': 0.7, 'entropy': 0.6},
+                morphology={'circularity': (0.5, 0.95), 'min_area': 80, 'max_area': None},
+                severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.35},
+                description="Cylindrical tan/cream-colored rot, fruit remains firm initially",
+                treatment="Remove cankers. Apply fungicides during warm wet weather.",
+                scientific_name="Botryosphaeria dothidea",
+                symptoms=["Tan/cream colored rot", "Cylindrical decay pattern", "Fruit remains firm", "May show red halos"]
+            ),
+
+            DiseaseType.BLUE_MOLD: DiseaseSignature(
+                name="Blue Mold",
+                plant_part=PlantPart.FRUIT,
+                hsv_ranges=[
+                    (np.array([100, 40, 80]), np.array([130, 200, 200])), # Blue-green mold
+                    (np.array([85, 30, 100]), np.array([110, 150, 180])), # Greenish mold
+                ],
+                texture_features={'uniformity': 0.3, 'contrast': 0.7, 'entropy': 0.65},
+                morphology={'circularity': (0.5, 0.95), 'min_area': 50, 'max_area': None},
+                severity_thresholds={'low': 0.03, 'medium': 0.12, 'high': 0.30},
+                description="Soft, watery rot with blue-green mold growth, common in storage",
+                treatment="Careful harvesting. Proper storage temperature. Post-harvest fungicides.",
+                scientific_name="Penicillium expansum",
+                symptoms=["Soft watery rot", "Blue-green mold sporulation", "Musty odor", "Entry through wounds"]
+            ),
+
+            # ==================== TRUNK & BARK DISEASES ====================
+            DiseaseType.FIRE_BLIGHT: DiseaseSignature(
+                name="Fire Blight",
+                plant_part=PlantPart.TRUNK,
+                hsv_ranges=[
+                    (np.array([0, 0, 0]), np.array([180, 100, 40])),      # Blackened tissue
+                    (np.array([0, 30, 20]), np.array([20, 150, 60])),     # Dark brown dead
+                ],
+                texture_features={'uniformity': 0.3, 'contrast': 0.9, 'entropy': 0.7},
+                morphology={'circularity': (0.1, 0.5), 'min_area': 200, 'max_area': None},
+                severity_thresholds={'low': 0.10, 'medium': 0.30, 'high': 0.50},
+                description="Blackened, scorched appearance. Shepherd's crook in shoots. Bacterial ooze.",
+                treatment="URGENT: Prune 12+ inches below infection. Sterilize tools. Apply copper sprays.",
+                scientific_name="Erwinia amylovora",
+                symptoms=["Blackened shoots", "Shepherd's crook", "Bacterial ooze", "Rapid wilting"]
+            ),
+
+            DiseaseType.BLACK_ROT: DiseaseSignature(
+                name="Black Rot (Canker)",
+                plant_part=PlantPart.TRUNK,
+                hsv_ranges=[
+                    (np.array([0, 0, 10]), np.array([180, 80, 60])),      # Dark necrotic
+                    (np.array([8, 80, 40]), np.array([20, 200, 120])),    # Brown with rings
+                ],
+                texture_features={'uniformity': 0.35, 'contrast': 0.85, 'entropy': 0.65},
+                morphology={'circularity': (0.3, 0.7), 'min_area': 100, 'max_area': 8000},
+                severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.35},
+                description="Sunken bark cankers with concentric rings, reddish-brown margins",
+                treatment="Prune infected branches. Remove mummified fruit. Apply fungicides.",
+                scientific_name="Botryosphaeria obtusa",
+                symptoms=["Sunken cankers", "Concentric rings in bark", "Reddish-brown margin", "Cracked bark"]
+            ),
+
+            DiseaseType.APPLE_CANKER: DiseaseSignature(
+                name="European Apple Canker",
+                plant_part=PlantPart.BARK,
+                hsv_ranges=[
+                    (np.array([5, 40, 30]), np.array([20, 150, 100])),    # Brown sunken bark
+                    (np.array([0, 60, 20]), np.array([15, 180, 80])),     # Red-brown canker
+                    (np.array([0, 0, 40]), np.array([180, 60, 100])),     # Gray exposed wood
+                ],
+                texture_features={'uniformity': 0.25, 'contrast': 0.9, 'entropy': 0.75},
+                morphology={'circularity': (0.2, 0.6), 'min_area': 200, 'max_area': 15000},
+                severity_thresholds={'low': 0.08, 'medium': 0.20, 'high': 0.40},
+                description="Sunken, target-like cankers with concentric rings of dead bark",
+                treatment="Cut out cankers during dry weather. Apply wound paint. Improve drainage.",
+                scientific_name="Neonectria ditissima",
+                symptoms=["Sunken target-like cankers", "Flaking bark", "Concentric rings", "Orange-red fruiting bodies"]
+            ),
+
+            DiseaseType.COLLAR_ROT: DiseaseSignature(
+                name="Collar Rot",
+                plant_part=PlantPart.ROOT_CROWN,
+                hsv_ranges=[
+                    (np.array([140, 30, 20]), np.array([170, 120, 80])),  # Purple-gray
+                    (np.array([8, 50, 25]), np.array([22, 180, 90])),     # Dark brown rot
+                    (np.array([0, 0, 15]), np.array([180, 80, 50])),      # Black dead tissue
+                ],
+                texture_features={'uniformity': 0.2, 'contrast': 0.95, 'entropy': 0.8},
+                morphology={'circularity': (0.2, 0.5), 'min_area': 500, 'max_area': None},
+                severity_thresholds={'low': 0.15, 'medium': 0.35, 'high': 0.60},
+                description="Dark brown to purple rot at soil line, girdling trunk base",
+                treatment="URGENT: Improve drainage. Excavate soil from crown. Apply phosphonate fungicides.",
+                scientific_name="Phytophthora cactorum",
+                symptoms=["Dark brown rot at soil line", "Purple-gray discoloration", "Girdling of trunk", "Sudden wilting"]
+            ),
+
+            DiseaseType.CROWN_ROT: DiseaseSignature(
+                name="Crown Rot",
+                plant_part=PlantPart.ROOT_CROWN,
+                hsv_ranges=[
+                    (np.array([8, 80, 40]), np.array([20, 200, 120])),    # Orange-brown under bark
+                    (np.array([15, 60, 30]), np.array([30, 180, 100])),   # Brown rotted tissue
+                ],
+                texture_features={'uniformity': 0.25, 'contrast': 0.85, 'entropy': 0.7},
+                morphology={'circularity': (0.15, 0.45), 'min_area': 400, 'max_area': None},
+                severity_thresholds={'low': 0.12, 'medium': 0.30, 'high': 0.55},
+                description="Orange-brown rot under bark at crown, sour smell, tree decline",
+                treatment="Excavate crown. Improve drainage. Apply metalaxyl or phosphonates.",
+                scientific_name="Phytophthora spp.",
+                symptoms=["Orange-brown under bark", "Sour/alcoholic smell", "Crown girdling", "Tree decline"]
+            ),
+
+            DiseaseType.PERENNIAL_CANKER: DiseaseSignature(
+                name="Perennial Canker (Bull's Eye Rot)",
+                plant_part=PlantPart.BARK,
+                hsv_ranges=[
+                    (np.array([10, 50, 40]), np.array([25, 180, 130])),   # Brown canker
+                    (np.array([0, 0, 60]), np.array([180, 50, 120])),     # Gray dead bark
+                ],
+                texture_features={'uniformity': 0.35, 'contrast': 0.8, 'entropy': 0.65},
+                morphology={'circularity': (0.5, 0.9), 'min_area': 150, 'max_area': 6000},
+                severity_thresholds={'low': 0.06, 'medium': 0.18, 'high': 0.35},
+                description="Bull's eye-shaped cankers with concentric zonation, often at pruning wounds",
+                treatment="Prune during dry weather. Apply wound sealant. Remove infected wood.",
+                scientific_name="Neofabraea perennans",
+                symptoms=["Bull's eye cankers", "Concentric zones", "At pruning wounds", "Slow expansion"]
+            ),
+
+            DiseaseType.SILVER_LEAF: DiseaseSignature(
+                name="Silver Leaf",
+                plant_part=PlantPart.LEAF,
+                hsv_ranges=[
+                    (np.array([0, 0, 140]), np.array([180, 40, 220])),    # Silvery sheen
+                    (np.array([35, 20, 120]), np.array([80, 80, 200])),   # Pale green-silver
+                ],
+                texture_features={'uniformity': 0.55, 'contrast': 0.5, 'entropy': 0.45},
+                morphology={'circularity': (0.2, 0.6), 'min_area': 1000, 'max_area': None},
+                severity_thresholds={'low': 0.15, 'medium': 0.35, 'high': 0.60},
+                description="Silvery metallic sheen on leaves due to fungal toxin separating leaf layers",
+                treatment="Prune infected branches to healthy wood. Apply wound paint. Remove dead wood.",
+                scientific_name="Chondrostereum purpureum",
+                symptoms=["Silvery leaf sheen", "Brown staining in wood", "Purple bracket fungi", "Die-back"]
+            ),
+
+            # ==================== STEM & BRANCH DISEASES ====================
+            DiseaseType.CYTOSPORA_CANKER: DiseaseSignature(
+                name="Cytospora Canker",
+                plant_part=PlantPart.STEM,
+                hsv_ranges=[
+                    (np.array([8, 50, 40]), np.array([22, 180, 120])),    # Brown dead bark
+                    (np.array([0, 40, 30]), np.array([15, 150, 90])),     # Reddish-brown
+                ],
+                texture_features={'uniformity': 0.3, 'contrast': 0.8, 'entropy': 0.7},
+                morphology={'circularity': (0.3, 0.7), 'min_area': 100, 'max_area': 5000},
+                severity_thresholds={'low': 0.05, 'medium': 0.15, 'high': 0.30},
+                description="Sunken, discolored bark cankers with amber gum exudation",
+                treatment="Prune infected branches. Improve tree vigor. Avoid wounding.",
+                scientific_name="Cytospora spp.",
+                symptoms=["Sunken bark", "Amber gummosis", "Dead branches", "Orange spore tendrils"]
+            ),
+
+            DiseaseType.BLISTER_CANKER: DiseaseSignature(
+                name="Blister Canker",
+                plant_part=PlantPart.STEM,
+                hsv_ranges=[
+                    (np.array([0, 0, 0]), np.array([180, 80, 45])),       # Black blistered bark
+                    (np.array([10, 40, 30]), np.array([25, 150, 100])),   # Brown under blister
+                ],
+                texture_features={'uniformity': 0.2, 'contrast': 0.9, 'entropy': 0.8},
+                morphology={'circularity': (0.4, 0.8), 'min_area': 80, 'max_area': 3000},
+                severity_thresholds={'low': 0.04, 'medium': 0.12, 'high': 0.28},
+                description="Raised blistered bark turning black, with white fungal growth underneath",
+                treatment="Remove and burn infected branches. Improve air circulation.",
+                scientific_name="Numularia discreta",
+                symptoms=["Raised bark blisters", "Black charred appearance", "White mycelium under bark", "Branch death"]
             ),
         }
 
     def _init_pest_signatures(self):
-        """Initialize pest damage signatures"""
+        """Initialize comprehensive pest damage signatures"""
         self.pest_signatures = {
+            # ==================== SAP-SUCKING INSECTS ====================
             PestType.APHIDS: {
+                'plant_part': PlantPart.LEAF,
                 'indicators': [
                     'leaf_curling',      # Curled leaf edges
                     'honeydew',          # Shiny residue
@@ -264,70 +604,355 @@ class ScientificAppleDetector:
                     'stunted_growth'     # Small, distorted leaves
                 ],
                 'color_changes': [
-                    # Yellowing from feeding
-                    (np.array([20, 60, 100]), np.array([35, 180, 220])),
+                    (np.array([20, 60, 100]), np.array([35, 180, 220])),  # Yellowing
                 ],
-                'treatment': 'Spray with insecticidal soap or neem oil. Introduce ladybugs.'
+                'description': 'Green or black clusters on shoot tips and leaf undersides',
+                'damage_pattern': 'Clustered feeding, distorted new growth',
+                'treatment': 'Spray with insecticidal soap or neem oil. Introduce ladybugs. Avoid excess nitrogen.'
             },
+
+            PestType.WOOLLY_APHID: {
+                'plant_part': PlantPart.TRUNK,
+                'indicators': [
+                    'white_waxy_coating',  # Characteristic white fuzz
+                    'galls',               # Swelling on roots/branches
+                    'honeydew',            # Sticky residue
+                ],
+                'color_changes': [
+                    (np.array([0, 0, 200]), np.array([180, 30, 255])),    # White waxy coating
+                    (np.array([10, 30, 60]), np.array([25, 150, 140])),   # Brown galls
+                ],
+                'description': 'White cottony masses on bark, branches, and wounds',
+                'damage_pattern': 'Gall formation, bark cracking, weakened trees',
+                'treatment': 'Apply horticultural oil. Use parasitic wasps (Aphelinus mali). Brush off colonies.'
+            },
+
             PestType.SPIDER_MITES: {
+                'plant_part': PlantPart.LEAF,
                 'indicators': [
                     'stippling',         # Tiny yellow/white dots
                     'bronzing',          # Bronze discoloration
                     'webbing',           # Fine silk webs
                 ],
                 'color_changes': [
-                    # Bronze/yellow stippling
-                    (np.array([15, 40, 80]), np.array([30, 150, 180])),
-                    # Pale spots
-                    (np.array([25, 20, 140]), np.array([40, 80, 200])),
+                    (np.array([15, 40, 80]), np.array([30, 150, 180])),   # Bronze/yellow
+                    (np.array([25, 20, 140]), np.array([40, 80, 200])),   # Pale spots
                 ],
-                'treatment': 'Apply miticides. Increase humidity. Use predatory mites.'
+                'description': 'Tiny mites causing stippling and bronzing, visible webbing',
+                'damage_pattern': 'Fine stippling becoming bronze, leaf drop in severe cases',
+                'treatment': 'Apply miticides. Increase humidity. Use predatory mites (Phytoseiulus).'
             },
+
+            PestType.EUROPEAN_RED_MITE: {
+                'plant_part': PlantPart.LEAF,
+                'indicators': [
+                    'bronze_stippling',
+                    'red_eggs_on_bark',
+                    'silvery_appearance',
+                ],
+                'color_changes': [
+                    (np.array([0, 80, 80]), np.array([10, 200, 180])),    # Red mites
+                    (np.array([15, 30, 100]), np.array([30, 120, 180])),  # Bronze leaves
+                ],
+                'description': 'Red mites on leaves causing bronzing and reduced photosynthesis',
+                'damage_pattern': 'Generalized bronzing, reduced fruit size and color',
+                'treatment': 'Apply horticultural oil in dormant season. Use predatory mites.'
+            },
+
+            PestType.SAN_JOSE_SCALE: {
+                'plant_part': PlantPart.BARK,
+                'indicators': [
+                    'circular_scales',     # Small round scales
+                    'red_halos',           # Red discoloration around scales
+                    'bark_encrustation',   # Heavy scale buildup
+                ],
+                'color_changes': [
+                    (np.array([0, 0, 40]), np.array([180, 80, 100])),     # Gray scales
+                    (np.array([0, 100, 80]), np.array([10, 200, 180])),   # Red halos on fruit
+                ],
+                'description': 'Tiny circular gray scales with red halos on fruit and bark',
+                'damage_pattern': 'Bark encrustation, red spots on fruit, tree decline',
+                'treatment': 'Apply horticultural oil in dormant season. Use crawl sprays. Prune heavily infested wood.'
+            },
+
+            # ==================== LEAF-FEEDING INSECTS ====================
             PestType.LEAF_MINERS: {
+                'plant_part': PlantPart.LEAF,
                 'indicators': [
                     'serpentine_mines',  # Winding trails
                     'blotch_mines',      # Irregular patches
                     'translucent_areas'  # Thin leaf tissue
                 ],
                 'color_changes': [
-                    # Pale/translucent trails
-                    (np.array([25, 10, 120]), np.array([45, 60, 200])),
-                    # Brown dead trails
-                    (np.array([15, 40, 60]), np.array([25, 120, 140])),
+                    (np.array([25, 10, 120]), np.array([45, 60, 200])),   # Pale trails
+                    (np.array([15, 40, 60]), np.array([25, 120, 140])),   # Brown dead trails
                 ],
+                'description': 'Serpentine or blotch mines between leaf surfaces',
+                'damage_pattern': 'Winding pale trails, brown as tissue dies',
                 'treatment': 'Remove affected leaves. Apply systemic insecticides. Use yellow sticky traps.'
+            },
+
+            PestType.LEAF_ROLLERS: {
+                'plant_part': PlantPart.LEAF,
+                'indicators': [
+                    'rolled_leaves',       # Leaves rolled and webbed
+                    'silk_webbing',        # Silken ties
+                    'feeding_damage',      # Holes in leaves
+                ],
+                'color_changes': [
+                    (np.array([20, 40, 80]), np.array([40, 150, 180])),   # Damaged yellow-brown
+                ],
+                'description': 'Caterpillars rolling leaves and feeding inside',
+                'damage_pattern': 'Rolled leaves tied with silk, skeletonized tissue',
+                'treatment': 'Apply Bt (Bacillus thuringiensis). Remove rolled leaves. Pheromone traps.'
+            },
+
+            PestType.TENT_CATERPILLARS: {
+                'plant_part': PlantPart.STEM,
+                'indicators': [
+                    'silk_tents',          # Web tents in branch crotches
+                    'defoliation',         # Stripped leaves
+                    'frass',               # Caterpillar droppings
+                ],
+                'color_changes': [
+                    (np.array([0, 0, 180]), np.array([180, 40, 255])),    # White silk tents
+                ],
+                'description': 'Silken tents in branch crotches with gregarious caterpillars',
+                'damage_pattern': 'Complete defoliation of branches, large silk tents',
+                'treatment': 'Remove and destroy tents. Apply Bt. Encourage natural predators.'
+            },
+
+            PestType.JAPANESE_BEETLE: {
+                'plant_part': PlantPart.LEAF,
+                'indicators': [
+                    'skeletonization',     # Veins only remaining
+                    'metallic_beetles',    # Visible beetles
+                    'aggregation',         # Beetles cluster together
+                ],
+                'color_changes': [
+                    (np.array([20, 30, 80]), np.array([40, 150, 180])),   # Brown skeletonized
+                ],
+                'description': 'Metallic green-bronze beetles skeletonizing leaves',
+                'damage_pattern': 'Leaves reduced to veins only, fruit feeding',
+                'treatment': 'Hand-pick beetles. Apply neem or pyrethrin. Use pheromone traps away from trees.'
+            },
+
+            # ==================== FRUIT-DAMAGING INSECTS ====================
+            PestType.CODLING_MOTH: {
+                'plant_part': PlantPart.FRUIT,
+                'indicators': [
+                    'entry_holes',         # Small holes in fruit
+                    'frass_at_calyx',      # Brown frass at entry
+                    'tunneling',           # Larval tunnels to core
+                ],
+                'color_changes': [
+                    (np.array([8, 60, 40]), np.array([22, 180, 120])),    # Brown entry damage
+                    (np.array([0, 0, 20]), np.array([180, 80, 80])),      # Dark frass
+                ],
+                'description': 'Larvae tunnel to fruit core, exit with brown frass',
+                'damage_pattern': 'Small entry hole near calyx, tunnel to seeds, frass-filled',
+                'treatment': 'Pheromone traps for monitoring. Apply Cydia pomonella granulosis virus. Mating disruption.'
+            },
+
+            PestType.APPLE_MAGGOT: {
+                'plant_part': PlantPart.FRUIT,
+                'indicators': [
+                    'dimpling',            # Sunken areas
+                    'brown_trails',        # Larval tunnels
+                    'premature_drop',      # Fruit falls early
+                ],
+                'color_changes': [
+                    (np.array([10, 50, 50]), np.array([25, 180, 140])),   # Brown tunneling
+                ],
+                'description': 'Fly larvae creating brown tunnels throughout fruit flesh',
+                'damage_pattern': 'Winding brown trails in flesh, sunken dimples, early drop',
+                'treatment': 'Red sphere traps. Apply kaolin clay. Remove fallen fruit promptly.'
+            },
+
+            PestType.PLUM_CURCULIO: {
+                'plant_part': PlantPart.FRUIT,
+                'indicators': [
+                    'crescent_scars',      # Characteristic crescent cuts
+                    'deformed_fruit',      # Misshapen apples
+                    'corky_tissue',        # Scarring from healed wounds
+                ],
+                'color_changes': [
+                    (np.array([10, 40, 50]), np.array([25, 150, 130])),   # Brown corky scars
+                ],
+                'description': 'Beetle creates crescent-shaped egg-laying scars',
+                'damage_pattern': 'Crescent-shaped cuts, corky scarring, deformed fruit',
+                'treatment': 'Apply insecticides at petal fall. Collect fallen fruit. Use trunk barriers.'
+            },
+
+            PestType.APPLE_SAWFLY: {
+                'plant_part': PlantPart.FRUIT,
+                'indicators': [
+                    'ribbon_scarring',     # Long surface scars
+                    'secondary_entry',     # Larvae enter fruit
+                    'fruitlet_drop',       # Young fruit drops
+                ],
+                'color_changes': [
+                    (np.array([8, 50, 50]), np.array([20, 170, 130])),    # Brown ribbon scars
+                ],
+                'description': 'Larvae cause ribbon-like scars on fruit surface',
+                'damage_pattern': 'Long corky ribbon scars, some fruits with tunneling',
+                'treatment': 'Apply insecticides at petal fall. White sticky traps. Remove infested fruitlets.'
+            },
+
+            # ==================== TRUNK & BARK PESTS ====================
+            PestType.FLATHEAD_BORER: {
+                'plant_part': PlantPart.TRUNK,
+                'indicators': [
+                    'sunken_bark',         # Depressed bark areas
+                    'd_shaped_exit',       # D-shaped exit holes
+                    'larval_galleries',    # Winding tunnels under bark
+                ],
+                'color_changes': [
+                    (np.array([8, 40, 40]), np.array([22, 150, 120])),    # Brown dead bark
+                    (np.array([0, 0, 30]), np.array([180, 60, 80])),      # Dark galleries
+                ],
+                'description': 'Larvae bore under bark of stressed trees, D-shaped exit holes',
+                'damage_pattern': 'Sunken bark, serpentine galleries, tree decline',
+                'treatment': 'Maintain tree vigor. White-wash trunks. Remove and burn infested wood.'
+            },
+
+            PestType.ROUNDHEAD_BORER: {
+                'plant_part': PlantPart.TRUNK,
+                'indicators': [
+                    'sawdust_frass',       # Sawdust-like material at base
+                    'round_exit_holes',    # Circular exit holes
+                    'bark_damage',         # Chewed bark
+                ],
+                'color_changes': [
+                    (np.array([15, 30, 100]), np.array([30, 100, 180])),  # Sawdust color
+                ],
+                'description': 'Larvae tunnel in trunk, cause structural weakening',
+                'damage_pattern': 'Round exit holes, sawdust at tree base, branch dieback',
+                'treatment': 'Probe tunnels with wire. Apply trunk wraps. Remove severely infested trees.'
+            },
+
+            PestType.BARK_BEETLE: {
+                'plant_part': PlantPart.BARK,
+                'indicators': [
+                    'shot_holes',          # Many small holes
+                    'gallery_patterns',    # Characteristic tunnel patterns
+                    'bark_flaking',        # Loose bark
+                ],
+                'color_changes': [
+                    (np.array([0, 0, 20]), np.array([180, 80, 70])),      # Dark galleries
+                ],
+                'description': 'Small beetles create characteristic gallery patterns under bark',
+                'damage_pattern': 'Numerous small holes, galleries visible under bark',
+                'treatment': 'Remove and burn infested wood. Maintain tree health. Solarize cut wood.'
             },
         }
 
     def _init_leaf_condition_params(self):
-        """Initialize leaf physiological condition parameters"""
+        """Initialize comprehensive leaf physiological condition parameters"""
         self.leaf_conditions = {
             LeafCondition.CHLOROSIS: {
-                # Yellowing due to nutrient deficiency (Fe, N, Mg)
                 'hsv_range': (np.array([20, 50, 100]), np.array([40, 200, 255])),
-                'threshold': 0.25,  # 25% of leaf yellow
+                'threshold': 0.25,
                 'causes': ['Iron deficiency', 'Nitrogen deficiency', 'Magnesium deficiency', 'Poor drainage'],
-                'treatment': 'Apply chelated iron or balanced fertilizer based on soil test.'
+                'treatment': 'Apply chelated iron or balanced fertilizer based on soil test.',
+                'description': 'General yellowing of leaves indicating nutrient deficiency'
+            },
+            LeafCondition.INTERVEINAL_CHLOROSIS: {
+                'hsv_range': (np.array([22, 60, 120]), np.array([38, 180, 240])),
+                'threshold': 0.20,
+                'causes': ['Iron deficiency', 'Manganese deficiency', 'High soil pH'],
+                'treatment': 'Apply chelated iron. Acidify soil if pH too high. Foliar iron sprays.',
+                'description': 'Yellowing between leaf veins while veins remain green'
             },
             LeafCondition.NECROSIS: {
-                # Dead/brown tissue
                 'hsv_range': (np.array([8, 50, 30]), np.array([25, 200, 100])),
                 'threshold': 0.15,
                 'causes': ['Disease', 'Chemical burn', 'Frost damage', 'Drought stress'],
-                'treatment': 'Identify and treat underlying cause. Remove severely affected leaves.'
+                'treatment': 'Identify and treat underlying cause. Remove severely affected leaves.',
+                'description': 'Dead brown tissue indicating cell death'
+            },
+            LeafCondition.MARGINAL_NECROSIS: {
+                'hsv_range': (np.array([10, 60, 40]), np.array([22, 180, 110])),
+                'threshold': 0.12,
+                'causes': ['Potassium deficiency', 'Salt damage', 'Wind burn', 'Herbicide drift'],
+                'treatment': 'Apply potassium fertilizer. Improve irrigation. Check for herbicide exposure.',
+                'description': 'Browning/death of leaf edges and margins'
             },
             LeafCondition.ANTHOCYANOSIS: {
-                # Purple/red coloration from stress
                 'hsv_range': (np.array([140, 50, 40]), np.array([170, 200, 150])),
                 'threshold': 0.20,
-                'causes': ['Phosphorus deficiency', 'Cold stress', 'Root damage'],
-                'treatment': 'Check soil phosphorus levels. Protect from cold. Inspect roots.'
+                'causes': ['Phosphorus deficiency', 'Cold stress', 'Root damage', 'Viral infection'],
+                'treatment': 'Check soil phosphorus levels. Protect from cold. Inspect roots.',
+                'description': 'Purple/red coloration from anthocyanin accumulation'
+            },
+            LeafCondition.BRONZING: {
+                'hsv_range': (np.array([12, 40, 80]), np.array([25, 140, 160])),
+                'threshold': 0.18,
+                'causes': ['Spider mites', 'Ozone damage', 'Nutrient toxicity', 'Sun scald'],
+                'treatment': 'Check for mites. Improve air quality. Adjust fertilization.',
+                'description': 'Bronze or copper discoloration of leaf surface'
+            },
+            LeafCondition.SILVERING: {
+                'hsv_range': (np.array([0, 0, 160]), np.array([180, 35, 230])),
+                'threshold': 0.22,
+                'causes': ['Silver leaf disease', 'Thrips damage', 'Mechanical injury'],
+                'treatment': 'Prune infected branches. Apply wound treatment. Control thrips.',
+                'description': 'Silvery metallic sheen on leaf surface'
+            },
+            LeafCondition.CURLING: {
+                'hsv_range': None,  # Detected by morphology, not color
+                'threshold': 0.15,
+                'causes': ['Aphid feeding', 'Herbicide damage', 'Viral infection', 'Water stress'],
+                'treatment': 'Control aphids. Check for herbicide drift. Improve irrigation.',
+                'description': 'Leaves rolling or curling inward/outward'
+            },
+            LeafCondition.SCORCHING: {
+                'hsv_range': (np.array([8, 70, 40]), np.array([20, 200, 120])),
+                'threshold': 0.20,
+                'causes': ['Heat stress', 'Salt accumulation', 'Drought', 'Root restriction'],
+                'treatment': 'Provide shade during heat. Improve irrigation. Leach salts.',
+                'description': 'Brown, crispy leaf margins from heat or salt damage'
             },
         }
 
+    def _detect_plant_part(self, processed: Dict) -> Dict[str, float]:
+        """
+        Detect what plant part is dominant in the image
+        Returns confidence scores for each plant part
+        """
+        hsv = processed['hsv']
+
+        # Leaf detection (green vegetation)
+        leaf_mask = cv2.inRange(hsv, np.array([30, 30, 30]), np.array([90, 255, 255]))
+
+        # Fruit detection (red/green round objects with smooth texture)
+        red_mask = cv2.inRange(hsv, np.array([0, 80, 80]), np.array([15, 255, 255]))
+        red_mask2 = cv2.inRange(hsv, np.array([160, 80, 80]), np.array([180, 255, 255]))
+        green_fruit = cv2.inRange(hsv, np.array([35, 60, 60]), np.array([85, 255, 255]))
+        fruit_mask = red_mask | red_mask2 | green_fruit
+
+        # Bark/trunk detection (brown/gray textured)
+        bark_mask = cv2.inRange(hsv, np.array([5, 20, 30]), np.array([25, 150, 150]))
+        gray_bark = cv2.inRange(hsv, np.array([0, 0, 50]), np.array([180, 40, 150]))
+        bark_mask = bark_mask | gray_bark
+
+        total_pixels = hsv.shape[0] * hsv.shape[1]
+
+        scores = {
+            'leaf': np.sum(leaf_mask > 0) / total_pixels,
+            'fruit': np.sum(fruit_mask > 0) / total_pixels,
+            'bark': np.sum(bark_mask > 0) / total_pixels,
+        }
+
+        # Determine dominant part
+        dominant = max(scores, key=scores.get)
+        scores['dominant'] = dominant
+
+        return scores
+
     def analyze_image(self, image: np.ndarray) -> Dict:
         """
-        Comprehensive scientific analysis of apple leaf/fruit image
+        Comprehensive scientific analysis of apple leaf/fruit/bark image
 
         Args:
             image: BGR image from OpenCV
@@ -338,22 +963,30 @@ class ScientificAppleDetector:
         # Preprocess
         processed = self._preprocess(image)
 
-        # Detect leaf/fruit regions
+        # Detect plant part type
+        plant_part_scores = self._detect_plant_part(processed)
+
+        # Detect plant material regions
         plant_mask = self._segment_plant_material(processed)
 
-        # Analyze diseases
+        # Analyze diseases (filter by detected plant part)
         disease_results = self._detect_diseases(processed, plant_mask)
 
         # Analyze pests
         pest_results = self._detect_pests(processed, plant_mask)
 
-        # Analyze leaf conditions
-        condition_results = self._analyze_leaf_conditions(processed, plant_mask)
+        # Analyze leaf conditions (only if leaves detected)
+        condition_results = {}
+        if plant_part_scores.get('leaf', 0) > 0.2:
+            condition_results = self._analyze_leaf_conditions(processed, plant_mask)
 
         # Calculate health indices
         health_metrics = self._calculate_health_metrics(
             processed, plant_mask, disease_results, condition_results
         )
+
+        # Add plant part info to metrics
+        health_metrics['plant_part'] = plant_part_scores
 
         # Generate visualization
         visualization = self._create_visualization(
@@ -366,6 +999,7 @@ class ScientificAppleDetector:
         )
 
         return {
+            'plant_part': plant_part_scores,
             'diseases': disease_results,
             'pests': pest_results,
             'leaf_conditions': condition_results,
@@ -881,25 +1515,75 @@ def analyze_apple_leaf(image_path: str, show_result: bool = False) -> Dict:
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("Scientific Apple Disease Detector")
-    print("Research-based CV analysis for apple tree pathology")
+    print("Scientific Apple Disease & Pest Detector v2.0")
+    print("Comprehensive CV analysis for apple tree pathology")
     print("=" * 70)
     print()
-    print("Supported Diseases:")
+    print("LEAF DISEASES:")
     print("  • Apple Scab (Venturia inaequalis)")
-    print("  • Cedar Apple Rust (Gymnosporangium)")
-    print("  • Fire Blight (Erwinia amylovora)")
+    print("  • Cedar Apple Rust (Gymnosporangium juniperi-virginianae)")
     print("  • Powdery Mildew (Podosphaera leucotricha)")
-    print("  • Black Rot (Botryosphaeria obtusa)")
     print("  • Alternaria Leaf Blotch (Alternaria mali)")
+    print("  • Frogeye Leaf Spot (Botryosphaeria obtusa)")
+    print("  • Marssonina Blotch (Marssonina coronaria)")
+    print("  • Silver Leaf (Chondrostereum purpureum)")
+    print("  • Apple Mosaic Virus (ApMV)")
     print()
-    print("Supported Pests:")
+    print("FRUIT DISEASES:")
+    print("  • Fruit Scab (Venturia inaequalis)")
+    print("  • Sooty Blotch (Peltaster fructicola complex)")
+    print("  • Flyspeck (Schizothyrium pomi)")
+    print("  • Bitter Pit (Calcium deficiency)")
+    print("  • Cork Spot (Ca/B deficiency)")
+    print("  • Water Core (Sorbitol accumulation)")
+    print("  • Black Rot Fruit (Botryosphaeria obtusa)")
+    print("  • White Rot / Bot Rot (Botryosphaeria dothidea)")
+    print("  • Blue Mold (Penicillium expansum)")
+    print()
+    print("TRUNK & BARK DISEASES:")
+    print("  • Fire Blight (Erwinia amylovora)")
+    print("  • Black Rot Canker (Botryosphaeria obtusa)")
+    print("  • European Apple Canker (Neonectria ditissima)")
+    print("  • Collar Rot (Phytophthora cactorum)")
+    print("  • Crown Rot (Phytophthora spp.)")
+    print("  • Perennial Canker (Neofabraea perennans)")
+    print()
+    print("STEM & BRANCH DISEASES:")
+    print("  • Cytospora Canker (Cytospora spp.)")
+    print("  • Blister Canker (Numularia discreta)")
+    print()
+    print("PESTS - Sap-sucking:")
     print("  • Aphids (Aphis pomi)")
+    print("  • Woolly Aphid (Eriosoma lanigerum)")
     print("  • Spider Mites (Panonychus ulmi)")
+    print("  • European Red Mite")
+    print("  • San Jose Scale (Quadraspidiotus perniciosus)")
+    print()
+    print("PESTS - Leaf-feeding:")
     print("  • Leaf Miners (Phyllonorycter spp.)")
+    print("  • Leaf Rollers (Archips spp.)")
+    print("  • Tent Caterpillars (Malacosoma spp.)")
+    print("  • Japanese Beetle (Popillia japonica)")
+    print()
+    print("PESTS - Fruit-damaging:")
+    print("  • Codling Moth (Cydia pomonella)")
+    print("  • Apple Maggot (Rhagoletis pomonella)")
+    print("  • Plum Curculio (Conotrachelus nenuphar)")
+    print("  • Apple Sawfly (Hoplocampa testudinea)")
+    print()
+    print("PESTS - Trunk borers:")
+    print("  • Flathead Borer (Chrysobothris femorata)")
+    print("  • Roundhead Borer (Saperda candida)")
+    print("  • Bark Beetle (Scolytus spp.)")
+    print()
+    print("PHYSIOLOGICAL CONDITIONS:")
+    print("  • Chlorosis, Interveinal Chlorosis")
+    print("  • Necrosis, Marginal Necrosis")
+    print("  • Anthocyanosis, Bronzing, Silvering")
+    print("  • Leaf Curling, Scorching")
     print()
     print("Usage:")
     print("  from scientific_apple_detector import analyze_apple_leaf")
-    print("  results = analyze_apple_leaf('leaf.jpg')")
+    print("  results = analyze_apple_leaf('image.jpg')")
     print()
     print("=" * 70)
