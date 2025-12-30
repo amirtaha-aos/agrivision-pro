@@ -150,7 +150,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
           ...data,
           report: {
             overall_health: data.health_metrics?.health_score || 0,
-            status: data.health_metrics?.status_persian || data.summary?.status_persian || 'نامشخص',
+            status: data.health_metrics?.status || data.summary?.status || 'Unknown',
             disease_summary: diseaseSummary,
             damaged_area_stats: null
           },

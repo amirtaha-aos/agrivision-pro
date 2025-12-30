@@ -57,7 +57,6 @@ class LeafCondition(Enum):
 class DiseaseSignature:
     """Scientific color signature for disease detection"""
     name: str
-    persian_name: str
     hsv_ranges: List[Tuple[np.ndarray, np.ndarray]]
     texture_features: Dict[str, float]
     morphology: Dict[str, any]
@@ -92,7 +91,6 @@ class ScientificAppleDetector:
         self.disease_signatures = {
             DiseaseType.HEALTHY: DiseaseSignature(
                 name="Healthy",
-                persian_name="سالم",
                 hsv_ranges=[
                     # Healthy green leaf - validated range
                     (np.array([35, 40, 40]), np.array([85, 255, 255]))
@@ -113,7 +111,6 @@ class ScientificAppleDetector:
 
             DiseaseType.APPLE_SCAB: DiseaseSignature(
                 name="Apple Scab",
-                persian_name="لکه سیاه سیب (اسکب)",
                 hsv_ranges=[
                     # Olive-green to dark brown lesions
                     # Based on Venturia inaequalis infection patterns
@@ -138,7 +135,6 @@ class ScientificAppleDetector:
 
             DiseaseType.CEDAR_APPLE_RUST: DiseaseSignature(
                 name="Cedar Apple Rust",
-                persian_name="زنگ سیب-سرو",
                 hsv_ranges=[
                     # Bright orange-yellow spots (upper side)
                     (np.array([5, 150, 150]), np.array([25, 255, 255])),
@@ -164,7 +160,6 @@ class ScientificAppleDetector:
 
             DiseaseType.FIRE_BLIGHT: DiseaseSignature(
                 name="Fire Blight",
-                persian_name="بلایت آتشی",
                 hsv_ranges=[
                     # Blackened/scorched tissue
                     (np.array([0, 0, 0]), np.array([180, 100, 40])),
@@ -188,7 +183,6 @@ class ScientificAppleDetector:
 
             DiseaseType.POWDERY_MILDEW: DiseaseSignature(
                 name="Powdery Mildew",
-                persian_name="سفیدک پودری",
                 hsv_ranges=[
                     # White powdery coating
                     (np.array([0, 0, 180]), np.array([180, 40, 255])),
@@ -212,7 +206,6 @@ class ScientificAppleDetector:
 
             DiseaseType.BLACK_ROT: DiseaseSignature(
                 name="Black Rot",
-                persian_name="پوسیدگی سیاه",
                 hsv_ranges=[
                     # Purple-brown margins
                     (np.array([140, 30, 30]), np.array([170, 150, 100])),
@@ -238,7 +231,6 @@ class ScientificAppleDetector:
 
             DiseaseType.ALTERNARIA_BLOTCH: DiseaseSignature(
                 name="Alternaria Leaf Blotch",
-                persian_name="لکه برگی آلترناریا",
                 hsv_ranges=[
                     # Brown lesions with yellow halo
                     (np.array([10, 60, 40]), np.array([25, 180, 140])),
@@ -275,7 +267,6 @@ class ScientificAppleDetector:
                     # Yellowing from feeding
                     (np.array([20, 60, 100]), np.array([35, 180, 220])),
                 ],
-                'persian_name': 'شته سیب',
                 'treatment': 'Spray with insecticidal soap or neem oil. Introduce ladybugs.'
             },
             PestType.SPIDER_MITES: {
@@ -290,7 +281,6 @@ class ScientificAppleDetector:
                     # Pale spots
                     (np.array([25, 20, 140]), np.array([40, 80, 200])),
                 ],
-                'persian_name': 'کنه تارتن',
                 'treatment': 'Apply miticides. Increase humidity. Use predatory mites.'
             },
             PestType.LEAF_MINERS: {
@@ -305,7 +295,6 @@ class ScientificAppleDetector:
                     # Brown dead trails
                     (np.array([15, 40, 60]), np.array([25, 120, 140])),
                 ],
-                'persian_name': 'مینوز برگ',
                 'treatment': 'Remove affected leaves. Apply systemic insecticides. Use yellow sticky traps.'
             },
         }
@@ -317,7 +306,6 @@ class ScientificAppleDetector:
                 # Yellowing due to nutrient deficiency (Fe, N, Mg)
                 'hsv_range': (np.array([20, 50, 100]), np.array([40, 200, 255])),
                 'threshold': 0.25,  # 25% of leaf yellow
-                'persian_name': 'کلروز (زردی)',
                 'causes': ['Iron deficiency', 'Nitrogen deficiency', 'Magnesium deficiency', 'Poor drainage'],
                 'treatment': 'Apply chelated iron or balanced fertilizer based on soil test.'
             },
@@ -325,7 +313,6 @@ class ScientificAppleDetector:
                 # Dead/brown tissue
                 'hsv_range': (np.array([8, 50, 30]), np.array([25, 200, 100])),
                 'threshold': 0.15,
-                'persian_name': 'نکروز (مرگ بافت)',
                 'causes': ['Disease', 'Chemical burn', 'Frost damage', 'Drought stress'],
                 'treatment': 'Identify and treat underlying cause. Remove severely affected leaves.'
             },
@@ -333,7 +320,6 @@ class ScientificAppleDetector:
                 # Purple/red coloration from stress
                 'hsv_range': (np.array([140, 50, 40]), np.array([170, 200, 150])),
                 'threshold': 0.20,
-                'persian_name': 'آنتوسیانوز (قرمزی)',
                 'causes': ['Phosphorus deficiency', 'Cold stress', 'Root damage'],
                 'treatment': 'Check soil phosphorus levels. Protect from cold. Inspect roots.'
             },
@@ -506,7 +492,6 @@ class ScientificAppleDetector:
                     detections.append({
                         'disease': disease_type.value,
                         'name': signature.name,
-                        'persian_name': signature.persian_name,
                         'bbox': [int(x), int(y), int(x+w), int(y+h)],
                         'area': float(area),
                         'confidence': float(confidence),
@@ -549,7 +534,6 @@ class ScientificAppleDetector:
                     if self._detect_stippling(gray, plant_mask):
                         detections.append({
                             'pest': pest_type.value,
-                            'persian_name': signature['persian_name'],
                             'damage_percentage': float(damage_ratio * 100),
                             'indicators': ['stippling', 'bronzing'],
                             'treatment': signature['treatment']
@@ -560,7 +544,6 @@ class ScientificAppleDetector:
                     if self._detect_mines(gray, plant_mask):
                         detections.append({
                             'pest': pest_type.value,
-                            'persian_name': signature['persian_name'],
                             'damage_percentage': float(damage_ratio * 100),
                             'indicators': ['serpentine_mines'],
                             'treatment': signature['treatment']
@@ -569,7 +552,6 @@ class ScientificAppleDetector:
                 elif pest_type == PestType.APHIDS and damage_ratio > 0.15:
                     detections.append({
                         'pest': pest_type.value,
-                        'persian_name': signature['persian_name'],
                         'damage_percentage': float(damage_ratio * 100),
                         'indicators': ['leaf_curling', 'yellowing'],
                         'treatment': signature['treatment']
@@ -599,7 +581,6 @@ class ScientificAppleDetector:
                           'moderate' if ratio > params['threshold'] else 'mild'
 
                 conditions[condition.value] = {
-                    'persian_name': params['persian_name'],
                     'percentage': float(ratio * 100),
                     'severity': severity,
                     'causes': params['causes'],
@@ -643,25 +624,19 @@ class ScientificAppleDetector:
 
         # Determine status
         if health_score >= 85:
-            status = 'excellent'
-            status_persian = 'عالی'
+            status = 'Excellent'
         elif health_score >= 70:
-            status = 'good'
-            status_persian = 'خوب'
+            status = 'Good'
         elif health_score >= 50:
-            status = 'moderate'
-            status_persian = 'متوسط'
+            status = 'Moderate'
         elif health_score >= 30:
-            status = 'poor'
-            status_persian = 'ضعیف'
+            status = 'Poor'
         else:
-            status = 'critical'
-            status_persian = 'بحرانی'
+            status = 'Critical'
 
         return {
             'health_score': float(health_score),
             'status': status,
-            'status_persian': status_persian,
             'green_ratio': float(green_ratio * 100),
             'chlorophyll_index': float(chlorophyll_index * 100),
             'disease_index': float(disease_index * 100),
@@ -699,7 +674,7 @@ class ScientificAppleDetector:
         # Draw overall stats
         stats = [
             f"Health: {metrics.get('health_score', 0):.1f}%",
-            f"Status: {metrics.get('status_persian', 'N/A')}",
+            f"Status: {metrics.get('status', 'N/A')}",
             f"Diseases: {len(diseases)}",
             f"Green: {metrics.get('green_ratio', 0):.1f}%"
         ]
@@ -725,9 +700,8 @@ class ScientificAppleDetector:
                 recommendations.append({
                     'priority': 'high' if disease['severity'] == 'high' else 'medium',
                     'type': 'disease',
-                    'issue': disease['persian_name'],
                     'action': disease['treatment'],
-                    'urgency': 'فوری' if disease['severity'] == 'high' else 'مهم'
+                    'urgency': 'Urgent' if disease['severity'] == 'high' else 'Important'
                 })
 
         # Pest treatments
@@ -735,9 +709,8 @@ class ScientificAppleDetector:
             recommendations.append({
                 'priority': 'medium',
                 'type': 'pest',
-                'issue': pest['persian_name'],
                 'action': pest['treatment'],
-                'urgency': 'مهم'
+                'urgency': 'Important'
             })
 
         # Condition treatments
@@ -746,9 +719,8 @@ class ScientificAppleDetector:
                 recommendations.append({
                     'priority': 'medium' if info['severity'] == 'moderate' else 'high',
                     'type': 'condition',
-                    'issue': info['persian_name'],
                     'action': info['treatment'],
-                    'urgency': 'فوری' if info['severity'] == 'severe' else 'مهم'
+                    'urgency': 'Urgent' if info['severity'] == 'severe' else 'Important'
                 })
 
         # General health advice
@@ -756,9 +728,9 @@ class ScientificAppleDetector:
             recommendations.append({
                 'priority': 'high',
                 'type': 'general',
-                'issue': 'سلامت کلی ضعیف',
-                'action': 'بررسی جامع درخت توسط کارشناس. احتمالاً نیاز به تقویت عمومی.',
-                'urgency': 'فوری'
+                'issue': 'Overall Poor Health',
+                'action': 'Comprehensive tree inspection by expert required. General strengthening likely needed.',
+                'urgency': 'Urgent'
             })
 
         # Sort by priority
@@ -774,7 +746,6 @@ class ScientificAppleDetector:
         return {
             'health_score': metrics.get('health_score', 0),
             'status': metrics.get('status', 'unknown'),
-            'status_persian': metrics.get('status_persian', 'نامشخص'),
             'detected_diseases': disease_names,
             'disease_count': len(diseases),
             'message': self._get_summary_message(metrics.get('health_score', 0), len(diseases))
@@ -783,15 +754,15 @@ class ScientificAppleDetector:
     def _get_summary_message(self, score: float, disease_count: int) -> str:
         """Get human-readable summary message"""
         if score >= 85:
-            return "وضعیت سلامت عالی است. برنامه مراقبتی فعلی را ادامه دهید."
+            return "Excellent health status. Continue current care program."
         elif score >= 70:
-            return "وضعیت خوب است. توجه به علائم اولیه بیماری توصیه می‌شود."
+            return "Good condition. Monitor for early disease symptoms."
         elif score >= 50:
-            return f"توجه: {disease_count} مورد بیماری شناسایی شد. اقدام درمانی لازم است."
+            return f"Attention: {disease_count} disease(s) detected. Treatment action required."
         elif score >= 30:
-            return "هشدار: سلامت درخت در وضعیت نگران‌کننده است. اقدام فوری لازم است."
+            return "Warning: Tree health is concerning. Immediate action required."
         else:
-            return "بحران: درخت به شدت آسیب دیده. مشاوره فوری با کارشناس ضروری است."
+            return "Critical: Tree severely damaged. Urgent expert consultation needed."
 
     # Helper methods
     def _calculate_circularity(self, contour) -> float:
@@ -911,21 +882,21 @@ def analyze_apple_leaf(image_path: str, show_result: bool = False) -> Dict:
 if __name__ == "__main__":
     print("=" * 70)
     print("Scientific Apple Disease Detector")
-    print("تشخیص علمی بیماری‌های درخت سیب")
+    print("Research-based CV analysis for apple tree pathology")
     print("=" * 70)
     print()
-    print("Supported Diseases (بیماری‌های قابل تشخیص):")
-    print("  • Apple Scab (لکه سیاه سیب)")
-    print("  • Cedar Apple Rust (زنگ سیب-سرو)")
-    print("  • Fire Blight (بلایت آتشی)")
-    print("  • Powdery Mildew (سفیدک پودری)")
-    print("  • Black Rot (پوسیدگی سیاه)")
-    print("  • Alternaria Blotch (لکه برگی آلترناریا)")
+    print("Supported Diseases:")
+    print("  • Apple Scab (Venturia inaequalis)")
+    print("  • Cedar Apple Rust (Gymnosporangium)")
+    print("  • Fire Blight (Erwinia amylovora)")
+    print("  • Powdery Mildew (Podosphaera leucotricha)")
+    print("  • Black Rot (Botryosphaeria obtusa)")
+    print("  • Alternaria Leaf Blotch (Alternaria mali)")
     print()
-    print("Supported Pests (آفات قابل تشخیص):")
-    print("  • Aphids (شته)")
-    print("  • Spider Mites (کنه تارتن)")
-    print("  • Leaf Miners (مینوز برگ)")
+    print("Supported Pests:")
+    print("  • Aphids (Aphis pomi)")
+    print("  • Spider Mites (Panonychus ulmi)")
+    print("  • Leaf Miners (Phyllonorycter spp.)")
     print()
     print("Usage:")
     print("  from scientific_apple_detector import analyze_apple_leaf")
