@@ -6,8 +6,13 @@ __pycache__/
 .Python
 venv/
 venv311/
+venv311_new/
 env/
 ENV/
+
+# Test images
+test_*.jpg
+test_*.png
 build/
 develop-eggs/
 dist/
