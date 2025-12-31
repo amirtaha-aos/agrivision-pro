@@ -1267,9 +1267,7 @@ async def get_detection_methods():
         methods.append({
             'id': 'yolo',
             'name': 'YOLO Deep Learning',
-            'name_persian': 'یادگیری عمیق YOLO',
             'description': 'State-of-the-art deep learning detection',
-            'description_persian': 'تشخیص با شبکه عصبی عمیق',
             'pros': ['Very high accuracy', 'Handles complex scenes', 'Robust to variations'],
             'cons': ['Requires trained model', 'Slower processing', 'GPU recommended'],
             'endpoint': '/api/health/analyze'
@@ -1280,9 +1278,7 @@ async def get_detection_methods():
         methods.append({
             'id': 'scientific',
             'name': 'Scientific Analysis',
-            'name_persian': 'تحلیل علمی',
             'description': 'Research-based detection using validated signatures',
-            'description_persian': 'تشخیص مبتنی بر مقالات علمی و امضاهای معتبر رنگی',
             'pros': ['Based on research papers', 'Detailed disease info', 'Treatment recommendations', 'No training needed'],
             'cons': ['Apple-specific', 'Requires good lighting'],
             'endpoint': '/api/health/analyze-scientific',
@@ -1298,9 +1294,7 @@ async def get_detection_methods():
         methods.append({
             'id': 'custom',
             'name': 'Custom Computer Vision',
-            'name_persian': 'پردازش تصویر سفارشی',
             'description': 'Classical image processing techniques',
-            'description_persian': 'تکنیک‌های کلاسیک پردازش تصویر',
             'pros': ['No training required', 'Fast processing', 'Works on CPU', 'Interpretable'],
             'cons': ['Lower accuracy', 'Sensitive to lighting', 'Fixed disease signatures'],
             'endpoint': '/api/health/analyze-custom'
@@ -1344,8 +1338,6 @@ except Exception as e:
 async def count_apples(file: UploadFile = File(...)):
     """
     Count apples and perform comprehensive health analysis
-
-    شمارش سیب‌ها و تحلیل جامع سلامت هر سیب
 
     Returns:
         - total_apples: Total number of apples detected
@@ -1439,13 +1431,11 @@ async def count_apples(file: UploadFile = File(...)):
                     'is_healthy': True,
                     'health_score': 80.0,
                     'health_status': 'good',
-                    'health_status_persian': 'خوب',
-                    'color': {'color_name': 'unknown', 'color_name_persian': 'نامشخص', 'percentages': {}},
+                    'color': {'color_name': 'unknown', 'percentages': {}},
                     'diseases': [],
                     'texture': {'texture_quality': 'unknown'},
-                    'ripeness': {'ripeness': 'unknown', 'ripeness_persian': 'نامشخص'},
-                    'recommendations': [],
-                    'recommendations_persian': []
+                    'ripeness': {'ripeness': 'unknown'},
+                    'recommendations': []
                 }
 
             # Update counts
@@ -1484,14 +1474,12 @@ async def count_apples(file: UploadFile = File(...)):
                 'detection_confidence': float(confidence),
                 'is_healthy': bool(analysis['is_healthy']),  # Ensure native Python bool
                 'health_score': float(analysis['health_score']),
-                'health_status': analysis['health_status'],
-                'health_status_persian': analysis['health_status_persian'],
+                'health_status': analysis.get('health_status', 'unknown'),
                 'color': analysis['color'],
                 'diseases': analysis.get('diseases', []),
                 'texture': analysis.get('texture', {}),
                 'ripeness': analysis.get('ripeness', {}),
-                'recommendations': analysis.get('recommendations', []),
-                'recommendations_persian': analysis.get('recommendations_persian', [])
+                'recommendations': analysis.get('recommendations', [])
             })
 
         # Calculate overall health
@@ -1504,15 +1492,15 @@ async def count_apples(file: UploadFile = File(...)):
 
         # Get status text
         if avg_health >= 90:
-            status_text = "Excellent - عالی"
+            status_text = "Excellent"
         elif avg_health >= 75:
-            status_text = "Good - خوب"
+            status_text = "Good"
         elif avg_health >= 50:
-            status_text = "Fair - متوسط"
+            status_text = "Fair"
         elif avg_health >= 25:
-            status_text = "Poor - ضعیف"
+            status_text = "Poor"
         else:
-            status_text = "Critical - بحرانی"
+            status_text = "Critical"
 
         # Count by color
         color_counts = {}

@@ -1,6 +1,6 @@
 """
 Simple Apple Health Detector
-تشخیص ساده سیب سالم و ناسالم با OpenCV
+Detects healthy and unhealthy apples using OpenCV
 """
 
 import cv2
@@ -11,91 +11,91 @@ from typing import Dict, Tuple
 
 class SimpleAppleDetector:
     """
-    تشخیص سیب سالم و ناسالم فقط با OpenCV
+    Detects healthy and unhealthy apples using only OpenCV
     """
 
     def __init__(self):
         """Initialize detector"""
-        # رنگ‌های سیب سالم (سبز و قرمز روشن)
+        # Healthy apple colors (bright green and red)
         self.healthy_colors = {
             'green_apple': {
-                'lower': np.array([35, 40, 40]),   # سبز روشن
+                'lower': np.array([35, 40, 40]),   # Bright green
                 'upper': np.array([85, 255, 255])
             },
             'red_apple': {
-                'lower': np.array([0, 100, 100]),  # قرمز روشن
+                'lower': np.array([0, 100, 100]),  # Bright red
                 'upper': np.array([10, 255, 255])
             },
             'red_apple_2': {
-                'lower': np.array([170, 100, 100]), # قرمز (wrap around)
+                'lower': np.array([170, 100, 100]), # Red (wrap around)
                 'upper': np.array([180, 255, 255])
             }
         }
 
-        # رنگ‌های سیب ناسالم (قهوه‌ای، سیاه، لکه‌دار)
+        # Unhealthy apple colors (brown, black, spotted)
         self.unhealthy_colors = {
             'brown_spots': {
-                'lower': np.array([10, 50, 20]),   # قهوه‌ای تیره
+                'lower': np.array([10, 50, 20]),   # Dark brown
                 'upper': np.array([30, 200, 120])
             },
             'black_spots': {
-                'lower': np.array([0, 0, 0]),      # سیاه
+                'lower': np.array([0, 0, 0]),      # Black
                 'upper': np.array([180, 255, 50])
             },
             'yellow_decay': {
-                'lower': np.array([20, 100, 100]), # زرد کدر
+                'lower': np.array([20, 100, 100]), # Dull yellow
                 'upper': np.array([35, 255, 200])
             }
         }
 
     def detect_apples(self, image: np.ndarray) -> Dict:
         """
-        تشخیص سیب‌ها در تصویر
+        Detect apples in an image
 
         Args:
-            image: تصویر ورودی BGR
+            image: BGR input image
 
         Returns:
-            اطلاعات سیب‌های تشخیص داده شده
+            Information about detected apples
         """
-        # پیش‌پردازش
+        # Preprocessing
         blurred = cv2.GaussianBlur(image, (5, 5), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
-        # ماسک سیب‌های سالم
+        # Healthy apple mask
         healthy_mask = self._create_healthy_mask(hsv)
 
-        # ماسک سیب‌های ناسالم
+        # Unhealthy apple mask
         unhealthy_mask = self._create_unhealthy_mask(hsv)
 
-        # ترکیب ماسک‌ها برای یافتن کل سیب‌ها
+        # Combine masks to find all apples
         apple_mask = cv2.bitwise_or(healthy_mask, unhealthy_mask)
 
-        # پاکسازی نویز
+        # Clean up noise
         kernel = np.ones((5, 5), np.uint8)
         apple_mask = cv2.morphologyEx(apple_mask, cv2.MORPH_CLOSE, kernel)
         apple_mask = cv2.morphologyEx(apple_mask, cv2.MORPH_OPEN, kernel)
 
-        # یافتن کانتورها (سیب‌ها)
+        # Find contours (apples)
         contours, _ = cv2.findContours(apple_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # تحلیل هر سیب
+        # Analyze each apple
         apples = []
         for contour in contours:
             area = cv2.contourArea(contour)
 
-            # فیلتر کردن اشیاء خیلی کوچک
-            if area < 500:  # حداقل اندازه سیب
+            # Filter out very small objects
+            if area < 500:  # Minimum apple size
                 continue
 
-            # دریافت bounding box
+            # Get bounding box
             x, y, w, h = cv2.boundingRect(contour)
 
-            # استخراج ناحیه سیب
+            # Extract apple region
             apple_roi = image[y:y+h, x:x+w]
             apple_mask_roi = apple_mask[y:y+h, x:x+w]
 
-            # تحلیل سلامت
+            # Analyze health
             health_info = self._analyze_apple_health(apple_roi, apple_mask_roi, hsv[y:y+h, x:x+w])
 
             apples.append({
@@ -108,7 +108,7 @@ class SimpleAppleDetector:
                 'circularity': self._calculate_circularity(contour)
             })
 
-        # محاسبه آمار کلی
+        # Calculate overall statistics
         total_apples = len(apples)
         healthy_apples = sum(1 for a in apples if a['is_healthy'])
         unhealthy_apples = total_apples - healthy_apples
@@ -125,13 +125,13 @@ class SimpleAppleDetector:
         }
 
     def _create_healthy_mask(self, hsv: np.ndarray) -> np.ndarray:
-        """ایجاد ماسک برای سیب‌های سالم"""
+        """Create mask for healthy apples"""
         masks = []
         for color_range in self.healthy_colors.values():
             mask = cv2.inRange(hsv, color_range['lower'], color_range['upper'])
             masks.append(mask)
 
-        # ترکیب همه ماسک‌ها
+        # Combine all masks
         combined = masks[0]
         for mask in masks[1:]:
             combined = cv2.bitwise_or(combined, mask)
@@ -139,13 +139,13 @@ class SimpleAppleDetector:
         return combined
 
     def _create_unhealthy_mask(self, hsv: np.ndarray) -> np.ndarray:
-        """ایجاد ماسک برای سیب‌های ناسالم"""
+        """Create mask for unhealthy apples"""
         masks = []
         for color_range in self.unhealthy_colors.values():
             mask = cv2.inRange(hsv, color_range['lower'], color_range['upper'])
             masks.append(mask)
 
-        # ترکیب همه ماسک‌ها
+        # Combine all masks
         combined = masks[0]
         for mask in masks[1:]:
             combined = cv2.bitwise_or(combined, mask)
@@ -154,8 +154,8 @@ class SimpleAppleDetector:
 
     def _analyze_apple_health(self, apple_roi: np.ndarray, mask_roi: np.ndarray,
                              hsv_roi: np.ndarray) -> Dict:
-        """تحلیل سلامت یک سیب"""
-        # محاسبه درصد ناحیه سالم
+        """Analyze health of a single apple"""
+        # Calculate healthy area percentage
         total_pixels = np.sum(mask_roi > 0)
         if total_pixels == 0:
             return {
@@ -165,17 +165,17 @@ class SimpleAppleDetector:
                 'dominant_color': 'unknown'
             }
 
-        # تشخیص نواحی ناسالم
+        # Detect unhealthy regions
         unhealthy_mask_roi = self._create_unhealthy_mask(hsv_roi)
         unhealthy_pixels = np.sum(unhealthy_mask_roi > 0)
 
         defect_percentage = (unhealthy_pixels / total_pixels * 100)
         health_score = 100 - defect_percentage
 
-        # تشخیص رنگ غالب
+        # Detect dominant color
         healthy_mask_roi = self._create_healthy_mask(hsv_roi)
 
-        # بررسی کدام رنگ بیشتر است
+        # Check which color is most common
         mean_hue = np.mean(hsv_roi[mask_roi > 0, 0]) if total_pixels > 0 else 0
 
         if mean_hue < 15 or mean_hue > 165:
@@ -187,8 +187,8 @@ class SimpleAppleDetector:
         else:
             dominant_color = 'other'
 
-        # تصمیم‌گیری سالم/ناسالم
-        is_healthy = defect_percentage < 15  # اگر کمتر از 15% عیب داشته باشد، سالم است
+        # Decide healthy/unhealthy
+        is_healthy = defect_percentage < 15  # If less than 15% defects, it's healthy
 
         return {
             'is_healthy': is_healthy,
@@ -198,7 +198,7 @@ class SimpleAppleDetector:
         }
 
     def _calculate_circularity(self, contour) -> float:
-        """محاسبه دایره‌ای بودن شکل"""
+        """Calculate shape circularity"""
         area = cv2.contourArea(contour)
         perimeter = cv2.arcLength(contour, True)
 
@@ -209,65 +209,65 @@ class SimpleAppleDetector:
         return float(min(circularity, 1.0))
 
     def _get_status(self, health_percentage: float) -> str:
-        """تعیین وضعیت کلی"""
+        """Determine overall status"""
         if health_percentage >= 90:
-            return "عالی"
+            return "Excellent"
         elif health_percentage >= 75:
-            return "خوب"
+            return "Good"
         elif health_percentage >= 50:
-            return "متوسط"
+            return "Fair"
         elif health_percentage >= 25:
-            return "ضعیف"
+            return "Poor"
         else:
-            return "بحرانی"
+            return "Critical"
 
     def visualize_results(self, image: np.ndarray, results: Dict) -> np.ndarray:
         """
-        نمایش نتایج روی تصویر
+        Display results on image
 
         Args:
-            image: تصویر اصلی
-            results: نتایج تشخیص
+            image: Original image
+            results: Detection results
 
         Returns:
-            تصویر با annotation
+            Annotated image
         """
         vis_image = image.copy()
 
         for apple in results['apples']:
             x1, y1, x2, y2 = apple['bbox']
 
-            # انتخاب رنگ بر اساس سلامت
+            # Select color based on health
             if apple['is_healthy']:
-                color = (0, 255, 0)  # سبز برای سالم
+                color = (0, 255, 0)  # Green for healthy
                 label = "HEALTHY"
             else:
-                color = (0, 0, 255)  # قرمز برای ناسالم
+                color = (0, 0, 255)  # Red for unhealthy
                 label = "UNHEALTHY"
 
-            # رسم مستطیل
+            # Draw rectangle
             cv2.rectangle(vis_image, (x1, y1), (x2, y2), color, 3)
 
-            # رسم برچسب
+            # Draw label
             label_text = f"{label} ({apple['health_score']:.1f}%)"
             label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
 
-            # پس‌زمینه برچسب
+            # Label background
             cv2.rectangle(vis_image,
                          (x1, y1 - label_size[1] - 10),
                          (x1 + label_size[0], y1),
                          color, -1)
 
-            # متن برچسب
+            # Label text
             cv2.putText(vis_image, label_text, (x1, y1 - 5),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-            # اطلاعات اضافی
+            # Additional info
             info_text = f"Color: {apple['dominant_color']}"
             cv2.putText(vis_image, info_text, (x1, y2 + 20),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-        # آمار کلی
+        # Overall statistics
         stats_text = [
             f"Total: {results['total_apples']}",
             f"Healthy: {results['healthy_apples']}",
@@ -288,34 +288,34 @@ class SimpleAppleDetector:
 
 def analyze_apple_image(image_path: str, show_result: bool = True) -> Dict:
     """
-    تحلیل یک تصویر از سیب
+    Analyze an apple image
 
     Args:
-        image_path: مسیر تصویر
-        show_result: نمایش نتیجه
+        image_path: Path to image
+        show_result: Display result
 
     Returns:
-        نتایج تحلیل
+        Analysis results
     """
     detector = SimpleAppleDetector()
 
-    # خواندن تصویر
+    # Read image
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError(f"Cannot load image: {image_path}")
 
-    # تشخیص
+    # Detect
     results = detector.detect_apples(image)
 
-    # ایجاد visualization
+    # Create visualization
     vis_image = detector.visualize_results(image, results)
 
-    # ذخیره نتیجه
+    # Save result
     output_path = str(Path(image_path).stem) + "_result.jpg"
     cv2.imwrite(output_path, vis_image)
-    print(f"✓ Result saved to: {output_path}")
+    print(f"Result saved to: {output_path}")
 
-    # نمایش
+    # Display
     if show_result:
         cv2.imshow('Apple Detection', vis_image)
         cv2.waitKey(0)
@@ -324,11 +324,10 @@ def analyze_apple_image(image_path: str, show_result: bool = True) -> Dict:
     return results
 
 
-# مثال استفاده
+# Example usage
 if __name__ == "__main__":
     print("=" * 60)
     print("Simple Apple Health Detector")
-    print("تشخیص ساده سیب سالم و ناسالم")
     print("=" * 60)
     print()
     print("Usage:")
@@ -336,10 +335,10 @@ if __name__ == "__main__":
     print("  results = analyze_apple_image('apple.jpg')")
     print()
     print("Features:")
-    print("  ✓ تشخیص سیب‌های سالم (سبز و قرمز روشن)")
-    print("  ✓ تشخیص سیب‌های ناسالم (لکه‌دار، قهوه‌ای، سیاه)")
-    print("  ✓ محاسبه درصد سلامت")
-    print("  ✓ نمایش بصری نتایج")
-    print("  ✓ سریع و بدون نیاز به GPU")
+    print("  - Detect healthy apples (bright green and red)")
+    print("  - Detect unhealthy apples (spotted, brown, black)")
+    print("  - Calculate health percentage")
+    print("  - Visual results display")
+    print("  - Fast, no GPU required")
     print()
     print("=" * 60)
