@@ -17,12 +17,10 @@ import {
   Moon,
   Sun,
   Camera,
-  Apple,
-  Upload,
 } from 'lucide-react';
 
 import { mavlinkAPI } from './api/mavlink';
-import { imageAPI, appleCounterAPI } from './api/imageProcessor';
+import { imageAPI } from './api/imageProcessor';
 import { API_CONFIG } from './api/config';
 
 // === Tree growth database for mission config (height in meters, age in years) ===
@@ -140,13 +138,6 @@ const AgriculturalDroneDashboard = ({ darkMode = false, t = (key) => key }) => {
     score: null,
     status: '—',
   });
-
-  // Apple Counter state
-  const [appleCounterFile, setAppleCounterFile] = useState(null);
-  const [appleCounterPreview, setAppleCounterPreview] = useState(null);
-  const [appleCounterLoading, setAppleCounterLoading] = useState(false);
-  const [appleCounterResults, setAppleCounterResults] = useState(null);
-  const [appleCounterError, setAppleCounterError] = useState('');
 
   // Use internal or prop darkMode
   const activeDarkMode = darkMode || darkModeInternal;
@@ -418,46 +409,6 @@ const AgriculturalDroneDashboard = ({ darkMode = false, t = (key) => key }) => {
       console.error('stopCamera error:', err);
     }
     setIsCameraOn(false);
-  };
-
-  // =========================
-  // Apple Counter handlers
-  // =========================
-  const handleAppleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAppleCounterFile(file);
-      setAppleCounterPreview(URL.createObjectURL(file));
-      setAppleCounterResults(null);
-      setAppleCounterError('');
-    }
-  };
-
-  const handleCountApples = async () => {
-    if (!appleCounterFile) {
-      setAppleCounterError(t('pleaseUploadImage'));
-      return;
-    }
-
-    setAppleCounterLoading(true);
-    setAppleCounterError('');
-
-    try {
-      const results = await appleCounterAPI.countApples(appleCounterFile);
-      setAppleCounterResults(results);
-    } catch (err) {
-      console.error('Apple counting error:', err);
-      setAppleCounterError(err.response?.data?.detail || err.message || t('analysisFailed'));
-    } finally {
-      setAppleCounterLoading(false);
-    }
-  };
-
-  const resetAppleCounter = () => {
-    setAppleCounterFile(null);
-    setAppleCounterPreview(null);
-    setAppleCounterResults(null);
-    setAppleCounterError('');
   };
 
   if (showSplash) {
@@ -1079,163 +1030,6 @@ const AgriculturalDroneDashboard = ({ darkMode = false, t = (key) => key }) => {
     </div>
   );
 
-  // ===== Apple Counter TAB =====
-  const renderAppleCounter = () => (
-    <div className="space-y-6">
-      <div className={`${cardBase} ${cardBg}`}>
-        <h3 className={`text-lg font-bold flex items-center gap-2 mb-4 ${activeDarkMode ? 'text-red-300' : 'text-red-700'}`}>
-          <Apple className={`w-5 h-5 ${activeDarkMode ? 'text-red-400' : 'text-red-500'}`} />
-          {t('apple_counter')}
-        </h3>
-        <p className={`text-sm ${activeDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4`}>
-          {t('apple_counter_description')}
-        </p>
-
-        {/* Upload Section */}
-        <div className="mb-6">
-          <label
-            htmlFor="apple-file-input"
-            className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-              activeDarkMode
-                ? 'border-red-600 bg-red-900/20 hover:bg-red-900/30'
-                : 'border-red-300 bg-red-50 hover:bg-red-100'
-            }`}
-          >
-            {appleCounterPreview ? (
-              <img
-                src={appleCounterPreview}
-                alt="Preview"
-                className="max-h-36 object-contain rounded-lg"
-              />
-            ) : (
-              <div className="flex flex-col items-center">
-                <Upload className={`w-10 h-10 mb-2 ${activeDarkMode ? 'text-red-400' : 'text-red-500'}`} />
-                <span className={`text-sm ${activeDarkMode ? 'text-red-300' : 'text-red-600'}`}>
-                  {t('clickToUploadImage')}
-                </span>
-                <span className={`text-xs mt-1 ${activeDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('pngJpgUpTo10MB')}
-                </span>
-              </div>
-            )}
-            <input
-              id="apple-file-input"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAppleFileChange}
-            />
-          </label>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4 mb-4">
-          <button
-            type="button"
-            onClick={handleCountApples}
-            disabled={!appleCounterFile || appleCounterLoading}
-            className={`px-6 py-3 rounded-lg text-sm font-semibold ${
-              activeDarkMode ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700'
-            } text-white transition-all disabled:opacity-50`}
-          >
-            {appleCounterLoading ? t('analyzing') : t('count_apples')}
-          </button>
-          {appleCounterResults && (
-            <button
-              type="button"
-              onClick={resetAppleCounter}
-              className={`px-6 py-3 rounded-lg text-sm font-semibold border ${
-                activeDarkMode
-                  ? 'border-gray-500 text-gray-300 hover:bg-gray-800'
-                  : 'border-gray-400 text-gray-600 hover:bg-gray-100'
-              } transition-all`}
-            >
-              {t('newMission')}
-            </button>
-          )}
-        </div>
-
-        {/* Error Message */}
-        {appleCounterError && (
-          <div className="mb-4 text-sm text-red-500 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{appleCounterError}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Results Section */}
-      {appleCounterResults && (
-        <div className={`${cardBase} ${cardBg}`}>
-          <h3 className={`text-lg font-bold flex items-center gap-2 mb-4 ${textClass}`}>
-            <CheckCircle2 className={`w-5 h-5 ${activeDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`} />
-            {t('counting_results')}
-          </h3>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className={`${activeDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-50 border-red-200'} rounded-lg p-4 text-center border-2`}>
-              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-red-300' : 'text-red-600'}`}>
-                {appleCounterResults.total_apples}
-              </div>
-              <div className={`text-sm ${activeDarkMode ? 'text-red-200' : 'text-red-700'} mt-1`}>
-                {t('total_apples')}
-              </div>
-            </div>
-            <div className={`${activeDarkMode ? 'bg-emerald-900/40 border-emerald-600' : 'bg-emerald-50 border-emerald-200'} rounded-lg p-4 text-center border-2`}>
-              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>
-                {appleCounterResults.healthy_apples}
-              </div>
-              <div className={`text-sm ${activeDarkMode ? 'text-emerald-200' : 'text-emerald-700'} mt-1`}>
-                {t('healthy_apples')}
-              </div>
-            </div>
-            <div className={`${activeDarkMode ? 'bg-amber-900/40 border-amber-500' : 'bg-amber-50 border-amber-200'} rounded-lg p-4 text-center border-2`}>
-              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>
-                {appleCounterResults.unhealthy_apples}
-              </div>
-              <div className={`text-sm ${activeDarkMode ? 'text-amber-200' : 'text-amber-700'} mt-1`}>
-                {t('unhealthy_apples')}
-              </div>
-            </div>
-            <div className={`${activeDarkMode ? 'bg-blue-900/40 border-blue-500' : 'bg-blue-50 border-blue-200'} rounded-lg p-4 text-center border-2`}>
-              <div className={`text-3xl font-bold ${activeDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>
-                {appleCounterResults.health_percentage.toFixed(1)}%
-              </div>
-              <div className={`text-sm ${activeDarkMode ? 'text-blue-200' : 'text-blue-700'} mt-1`}>
-                {t('health_percentage')}
-              </div>
-            </div>
-          </div>
-
-          {/* Status Badge */}
-          <div className="mb-6">
-            <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
-              appleCounterResults.health_percentage >= 75
-                ? activeDarkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'
-                : appleCounterResults.health_percentage >= 50
-                ? activeDarkMode ? 'bg-amber-900/50 text-amber-300' : 'bg-amber-100 text-amber-700'
-                : activeDarkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
-            }`}>
-              {t('status')}: {appleCounterResults.status_text}
-            </span>
-          </div>
-
-          {/* Visualization */}
-          {appleCounterResults.visualization && (
-            <div className={`rounded-xl overflow-hidden border ${activeDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-              <img
-                src={`data:image/jpeg;base64,${appleCounterResults.visualization}`}
-                alt="Apple detection visualization"
-                className="w-full object-contain"
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className={`min-h-screen p-6 animate-fade-in ${rootBg}`}>
       {/* Header */}
@@ -1312,10 +1106,6 @@ const AgriculturalDroneDashboard = ({ darkMode = false, t = (key) => key }) => {
               <Camera className="w-4 h-4" />
               {t('camera')}
             </button>
-            <button className={navItemClasses('appleCounter')} onClick={() => setActiveTab('appleCounter')}>
-              <Apple className="w-4 h-4" />
-              {t('apple_counter')}
-            </button>
           </div>
         </aside>
 
@@ -1326,7 +1116,6 @@ const AgriculturalDroneDashboard = ({ darkMode = false, t = (key) => key }) => {
           {activeTab === 'flight' && renderFlight()}
           {activeTab === 'analysis' && renderAnalysis()}
           {activeTab === 'camera' && renderCamera()}
-          {activeTab === 'appleCounter' && renderAppleCounter()}
         </main>
       </div>
 
