@@ -62,7 +62,23 @@ python3 train_fast_cpu.py
 - 🍎 Apple diseases (healthy, scab, black rot, cedar rust)
 - 🌱 Soybean (coming soon)
 
-### 3. Farm Health Monitoring
+### 3. 🍎 Apple Counter & Health Analyzer
+**NEW!** Count apples and analyze each one individually:
+
+```bash
+curl -X POST "http://localhost:8000/api/apple/count" \
+  -F "file=@apple_tree.jpg"
+```
+
+**Features:**
+- YOLOv8x detection for accurate apple counting
+- Individual apple color detection (red/green/yellow/mixed)
+- Disease detection with 12+ disease database
+- Ripeness analysis
+- Persian + English reports
+- Visual output with color-coded health status
+
+### 4. Farm Health Monitoring
 - Batch process farm images
 - Generate color-coded health maps
 - Get treatment recommendations
@@ -104,6 +120,44 @@ curl -X POST "http://localhost:8000/api/health/batch-analyze?crop_type=apple" \
 }
 ```
 
+### Count & Analyze Apples
+
+```bash
+curl -X POST "http://localhost:8000/api/apple/count" \
+  -F "file=@orchard.jpg"
+```
+
+**Response:**
+```json
+{
+  "total_apples": 45,
+  "healthy_apples": 38,
+  "unhealthy_apples": 7,
+  "health_percentage": 84.4,
+  "average_health_score": 82.5,
+  "status_text": "Good - خوب",
+  "color_distribution": {
+    "red": 28,
+    "green": 12,
+    "yellow": 5
+  },
+  "disease_summary": {
+    "Apple Scab": 4,
+    "Bruising": 3
+  },
+  "apples": [
+    {
+      "id": 1,
+      "is_healthy": true,
+      "health_score": 95.2,
+      "color": {"color_name": "red", "color_name_persian": "قرمز"},
+      "ripeness": {"ripeness": "ripe", "ripeness_persian": "رسیده"}
+    }
+  ],
+  "visualization": "base64_encoded_image..."
+}
+```
+
 ### Control Drone
 
 ```python
@@ -138,6 +192,8 @@ agrivision-pro/
 ├── backend/
 │   ├── mavlink_api.py              # Main API server
 │   ├── crop_health_detector.py     # AI disease detection
+│   ├── apple_health_analyzer.py    # Apple health & color analysis
+│   ├── scientific_apple_detector.py # Research-based detection
 │   ├── train_fast_cpu.py           # Model training
 │   ├── models/                     # Trained models
 │   │   └── apple_disease_detector.pt
@@ -147,7 +203,9 @@ agrivision-pro/
 ├── dashboard/                      # React web interface
 │   └── src/
 │       ├── AgriculturalDroneDashboard.jsx
-│       └── CropHealthMonitor.jsx
+│       ├── CropHealthMonitor.jsx
+│       └── api/
+│           └── imageProcessor.js   # Apple counter API
 │
 └── README.md
 ```
