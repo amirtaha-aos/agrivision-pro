@@ -40,9 +40,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
         methods.push({
           id: 'apple_count',
           name: 'Apple Counter',
-          name_persian: 'شمارش سیب',
           description: 'Count apples and analyze health status',
-          description_persian: 'شمارش تعداد سیب و تحلیل سلامت',
           pros: ['Fast counting', 'Health analysis', 'Visual results'],
           cons: ['Apple only'],
           endpoint: '/api/apple/count'
@@ -485,32 +483,32 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                     <div className={`${darkMode ? 'bg-gradient-to-br from-red-900 to-orange-900 bg-opacity-30' : 'bg-gradient-to-br from-red-50 to-orange-50'} rounded-lg p-6`}>
                       <h3 className={`text-lg font-semibold ${textClass} mb-3 flex items-center gap-2`}>
                         <Apple className="w-5 h-5 text-red-500" />
-                        شمارش سیب‌ها / Apple Count
+                        Apple Count
                       </h3>
                       <div className="grid grid-cols-4 gap-4">
                         <div className="text-center">
                           <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                             {analysisResult.report.total_apples}
                           </p>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>کل / Total</p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total</p>
                         </div>
                         <div className="text-center">
                           <p className={`text-3xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
                             {analysisResult.report.disease_summary?.healthy || 0}
                           </p>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>سالم / Healthy</p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Healthy</p>
                         </div>
                         <div className="text-center">
                           <p className={`text-3xl font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
                             {analysisResult.report.disease_summary?.unhealthy || 0}
                           </p>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>ناسالم / Unhealthy</p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unhealthy</p>
                         </div>
                         <div className="text-center">
                           <p className={`text-3xl font-bold ${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
                             {analysisResult.average_health_score?.toFixed(0) || analysisResult.report.overall_health?.toFixed(0) || 0}%
                           </p>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>سلامت / Health</p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg Health</p>
                         </div>
                       </div>
                     </div>
@@ -518,7 +516,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                     {/* Color Distribution */}
                     {analysisResult.color_distribution && Object.keys(analysisResult.color_distribution).length > 0 && (
                       <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                        <h4 className={`text-sm font-semibold ${textClass} mb-3`}>توزیع رنگ سیب‌ها / Color Distribution</h4>
+                        <h4 className={`text-sm font-semibold ${textClass} mb-3`}>Color Distribution</h4>
                         <div className="flex flex-wrap gap-2">
                           {Object.entries(analysisResult.color_distribution).map(([color, count]) => (
                             <span key={color} className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -528,7 +526,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                               color.includes('mixed') ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
                               'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                             }`}>
-                              {color === 'red' ? '🔴 قرمز' : color === 'green' ? '🟢 سبز' : color === 'yellow' ? '🟡 زرد' : color === 'mixed_red_green' ? '🟠 قرمز-سبز' : color === 'mixed_red_yellow' ? '🟠 قرمز-زرد' : color}: {count}
+                              {color === 'red' ? '🔴 Red' : color === 'green' ? '🟢 Green' : color === 'yellow' ? '🟡 Yellow' : color === 'mixed_red_green' ? '🟠 Red-Green' : color === 'mixed_red_yellow' ? '🟠 Red-Yellow' : color}: {count}
                             </span>
                           ))}
                         </div>
@@ -538,7 +536,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                     {/* Individual Apple Details */}
                     {analysisResult.apples && analysisResult.apples.length > 0 && (
                       <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                        <h4 className={`text-sm font-semibold ${textClass} mb-3`}>جزئیات هر سیب / Apple Details</h4>
+                        <h4 className={`text-sm font-semibold ${textClass} mb-3`}>Apple Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
                           {analysisResult.apples.slice(0, 10).map((apple) => (
                             <div key={apple.id} className={`p-3 rounded-lg ${
@@ -547,7 +545,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                                 : darkMode ? 'bg-red-900/20 border border-red-700' : 'bg-red-50 border border-red-200'
                             }`}>
                               <div className="flex justify-between items-start mb-2">
-                                <span className={`font-bold ${textClass}`}>سیب #{apple.id}</span>
+                                <span className={`font-bold ${textClass}`}>Apple #{apple.id}</span>
                                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                                   apple.health_score >= 80 ? 'bg-green-500 text-white' :
                                   apple.health_score >= 50 ? 'bg-yellow-500 text-white' :
@@ -558,22 +556,22 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                               </div>
                               <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} space-y-1`}>
                                 <div className="flex justify-between">
-                                  <span>رنگ / Color:</span>
-                                  <span className="font-medium">{apple.color?.color_name_persian || apple.color?.color_name || 'نامشخص'}</span>
+                                  <span>Color:</span>
+                                  <span className="font-medium">{apple.color?.color_name || 'Unknown'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>رسیدگی / Ripeness:</span>
-                                  <span className="font-medium">{apple.ripeness?.ripeness_persian || apple.ripeness?.ripeness || 'نامشخص'}</span>
+                                  <span>Ripeness:</span>
+                                  <span className="font-medium">{apple.ripeness?.ripeness || 'Unknown'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>وضعیت / Status:</span>
-                                  <span className="font-medium">{apple.health_status_persian || apple.health_status || 'نامشخص'}</span>
+                                  <span>Status:</span>
+                                  <span className="font-medium">{apple.health_status || 'Unknown'}</span>
                                 </div>
                                 {apple.diseases && apple.diseases.length > 0 && (
                                   <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
-                                    <span className="text-red-500 font-medium">مشکلات:</span>
+                                    <span className="text-red-500 font-medium">Issues:</span>
                                     {apple.diseases.map((d, idx) => (
-                                      <div key={idx} className="text-red-400 text-xs ml-2">• {d.name_persian || d.name}</div>
+                                      <div key={idx} className="text-red-400 text-xs ml-2">• {d.name || d.name_persian}</div>
                                     ))}
                                   </div>
                                 )}
@@ -583,7 +581,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                         </div>
                         {analysisResult.apples.length > 10 && (
                           <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-2 text-center`}>
-                            و {analysisResult.apples.length - 10} سیب دیگر...
+                            and {analysisResult.apples.length - 10} more apples...
                           </p>
                         )}
                       </div>
@@ -592,13 +590,13 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                     {/* Disease Summary for Apples */}
                     {analysisResult.disease_summary && Object.keys(analysisResult.disease_summary).length > 0 && (
                       <div className={`${darkMode ? 'bg-red-900/20' : 'bg-red-50'} rounded-lg p-4 border ${darkMode ? 'border-red-700' : 'border-red-200'}`}>
-                        <h4 className={`text-sm font-semibold ${darkMode ? 'text-red-300' : 'text-red-700'} mb-3`}>بیماری‌های شناسایی شده / Detected Diseases</h4>
+                        <h4 className={`text-sm font-semibold ${darkMode ? 'text-red-300' : 'text-red-700'} mb-3`}>Detected Diseases</h4>
                         <div className="space-y-2">
                           {Object.entries(analysisResult.disease_summary).map(([disease, count]) => (
                             <div key={disease} className={`flex justify-between items-center p-2 rounded ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
                               <span className={`text-sm ${darkMode ? 'text-red-200' : 'text-red-800'}`}>{disease}</span>
                               <span className={`px-2 py-0.5 rounded text-xs font-bold ${darkMode ? 'bg-red-700 text-red-100' : 'bg-red-200 text-red-800'}`}>
-                                {count} سیب
+                                {count} apples
                               </span>
                             </div>
                           ))}
