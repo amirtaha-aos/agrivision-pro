@@ -238,7 +238,17 @@ export const translations = {
     error_landing: "Landing failed",
     rtl_command_sent: "Return to Launch command sent",
     error_rtl: "RTL failed",
-    error_camera_stream: "Failed to start camera stream"
+    error_camera_stream: "Failed to start camera stream",
+
+    // Apple Counter
+    apple_counter: "Apple Counter",
+    apple_counter_description: "Upload an image to count apples and analyze their health status",
+    count_apples: "Count Apples",
+    counting_results: "Counting Results",
+    total_apples: "Total Apples",
+    healthy_apples: "Healthy",
+    unhealthy_apples: "Unhealthy",
+    health_percentage: "Health %"
   },
 
   zh: {
@@ -937,7 +947,17 @@ export const translations = {
     error_landing: "فرود ناموفق بود",
     rtl_command_sent: "دستور بازگشت به خانه ارسال شد",
     error_rtl: "بازگشت ناموفق بود",
-    error_camera_stream: "شروع جریان دوربین ناموفق بود"
+    error_camera_stream: "شروع جریان دوربین ناموفق بود",
+
+    // Apple Counter
+    apple_counter: "شمارش سیب",
+    apple_counter_description: "تصویری آپلود کنید تا تعداد سیب‌ها شمارش و سلامت آن‌ها تحلیل شود",
+    count_apples: "شمارش سیب‌ها",
+    counting_results: "نتایج شمارش",
+    total_apples: "کل سیب‌ها",
+    healthy_apples: "سالم",
+    unhealthy_apples: "ناسالم",
+    health_percentage: "درصد سلامت"
   },
 
   es: {

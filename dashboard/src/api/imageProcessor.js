@@ -2,6 +2,20 @@
 import axios from 'axios';
 import { API_CONFIG } from './config';
 
+export const appleCounterAPI = {
+  // شمارش سیب‌ها در تصویر
+  countApples: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await axios.post(
+      `${API_CONFIG.MAVLINK_API}/api/apple/count`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return res.data;
+  },
+};
+
 export const imageAPI = {
   // تغییر مود پردازش: 'yolo' | 'cv' | 'both'
   setMode: async (mode) => {

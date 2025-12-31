@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, Leaf, TrendingUp, AlertTriangle, CheckCircle, XCircle, Loader, Cpu, Zap, Brain } from 'lucide-react';
+import { Upload, Image as ImageIcon, Leaf, TrendingUp, AlertTriangle, CheckCircle, XCircle, Loader, Cpu, Zap, Brain, Apple } from 'lucide-react';
 
 const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
   // Dark mode classes
@@ -35,7 +35,19 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
       const response = await fetch(`${API_BASE_URL}/api/detection-methods`);
       if (response.ok) {
         const data = await response.json();
-        setAvailableMethods(data.methods || []);
+        // Add apple counting method
+        const methods = data.methods || [];
+        methods.push({
+          id: 'apple_count',
+          name: 'Apple Counter',
+          name_persian: 'شمارش سیب',
+          description: 'Count apples and analyze health status',
+          description_persian: 'شمارش تعداد سیب و تحلیل سلامت',
+          pros: ['Fast counting', 'Health analysis', 'Visual results'],
+          cons: ['Apple only'],
+          endpoint: '/api/apple/count'
+        });
+        setAvailableMethods(methods);
       }
     } catch (err) {
       console.error('Failed to fetch detection methods:', err);
@@ -107,7 +119,9 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
 
     // Choose endpoint based on detection method
     let endpoint;
-    if (detectionMethod === 'scientific') {
+    if (detectionMethod === 'apple_count') {
+      endpoint = `${API_BASE_URL}/api/apple/count`;
+    } else if (detectionMethod === 'scientific') {
       endpoint = `${API_BASE_URL}/api/health/analyze-scientific?crop_type=${selectedCrop}`;
     } else if (detectionMethod === 'custom') {
       endpoint = `${API_BASE_URL}/api/health/analyze-custom?crop_type=${selectedCrop}`;
@@ -176,6 +190,27 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
             disease_summary: diseaseSummary,
             damaged_area_stats: null
           }
+        };
+      } else if (detectionMethod === 'apple_count') {
+        // Convert apple counter response with detailed analysis
+        normalizedData = {
+          ...data,
+          report: {
+            overall_health: data.average_health_score || data.health_percentage || 0,
+            status: data.status_text || 'Unknown',
+            disease_summary: {
+              'healthy': data.healthy_apples || 0,
+              'unhealthy': data.unhealthy_apples || 0
+            },
+            damaged_area_stats: null,
+            total_apples: data.total_apples || 0
+          },
+          // Pass through additional detailed data
+          apples: data.apples || [],
+          color_distribution: data.color_distribution || {},
+          disease_summary: data.disease_summary || {},
+          average_health_score: data.average_health_score || data.health_percentage || 0,
+          visualization: data.visualization
         };
       }
 
@@ -290,6 +325,8 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                           <Brain className="w-5 h-5 text-purple-500" />
                         ) : method.id === 'scientific' ? (
                           <Leaf className="w-5 h-5 text-green-500" />
+                        ) : method.id === 'apple_count' ? (
+                          <Apple className="w-5 h-5 text-red-500" />
                         ) : (
                           <Zap className="w-5 h-5 text-orange-500" />
                         )}
@@ -315,6 +352,8 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                     ? '🧠 Using deep learning for maximum accuracy'
                     : detectionMethod === 'scientific'
                     ? '🔬 Research-based analysis with disease identification'
+                    : detectionMethod === 'apple_count'
+                    ? '🍎 Count apples and analyze their health status'
                     : '⚡ Using classical computer vision for speed'}
                 </p>
               )}
@@ -438,6 +477,136 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
                     </span>
                   </div>
                 </div>
+
+                {/* Apple Count Summary - only show for apple_count method */}
+                {analysisResult.report.total_apples !== undefined && (
+                  <>
+                    {/* Main Count Stats */}
+                    <div className={`${darkMode ? 'bg-gradient-to-br from-red-900 to-orange-900 bg-opacity-30' : 'bg-gradient-to-br from-red-50 to-orange-50'} rounded-lg p-6`}>
+                      <h3 className={`text-lg font-semibold ${textClass} mb-3 flex items-center gap-2`}>
+                        <Apple className="w-5 h-5 text-red-500" />
+                        شمارش سیب‌ها / Apple Count
+                      </h3>
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                            {analysisResult.report.total_apples}
+                          </p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>کل / Total</p>
+                        </div>
+                        <div className="text-center">
+                          <p className={`text-3xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                            {analysisResult.report.disease_summary?.healthy || 0}
+                          </p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>سالم / Healthy</p>
+                        </div>
+                        <div className="text-center">
+                          <p className={`text-3xl font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                            {analysisResult.report.disease_summary?.unhealthy || 0}
+                          </p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>ناسالم / Unhealthy</p>
+                        </div>
+                        <div className="text-center">
+                          <p className={`text-3xl font-bold ${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                            {analysisResult.average_health_score?.toFixed(0) || analysisResult.report.overall_health?.toFixed(0) || 0}%
+                          </p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>سلامت / Health</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Color Distribution */}
+                    {analysisResult.color_distribution && Object.keys(analysisResult.color_distribution).length > 0 && (
+                      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <h4 className={`text-sm font-semibold ${textClass} mb-3`}>توزیع رنگ سیب‌ها / Color Distribution</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(analysisResult.color_distribution).map(([color, count]) => (
+                            <span key={color} className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              color === 'red' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                              color === 'green' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
+                              color === 'yellow' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                              color.includes('mixed') ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
+                              'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {color === 'red' ? '🔴 قرمز' : color === 'green' ? '🟢 سبز' : color === 'yellow' ? '🟡 زرد' : color === 'mixed_red_green' ? '🟠 قرمز-سبز' : color === 'mixed_red_yellow' ? '🟠 قرمز-زرد' : color}: {count}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Individual Apple Details */}
+                    {analysisResult.apples && analysisResult.apples.length > 0 && (
+                      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <h4 className={`text-sm font-semibold ${textClass} mb-3`}>جزئیات هر سیب / Apple Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                          {analysisResult.apples.slice(0, 10).map((apple) => (
+                            <div key={apple.id} className={`p-3 rounded-lg ${
+                              apple.is_healthy
+                                ? darkMode ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200'
+                                : darkMode ? 'bg-red-900/20 border border-red-700' : 'bg-red-50 border border-red-200'
+                            }`}>
+                              <div className="flex justify-between items-start mb-2">
+                                <span className={`font-bold ${textClass}`}>سیب #{apple.id}</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                  apple.health_score >= 80 ? 'bg-green-500 text-white' :
+                                  apple.health_score >= 50 ? 'bg-yellow-500 text-white' :
+                                  'bg-red-500 text-white'
+                                }`}>
+                                  {apple.health_score?.toFixed(0) || 0}%
+                                </span>
+                              </div>
+                              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} space-y-1`}>
+                                <div className="flex justify-between">
+                                  <span>رنگ / Color:</span>
+                                  <span className="font-medium">{apple.color?.color_name_persian || apple.color?.color_name || 'نامشخص'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>رسیدگی / Ripeness:</span>
+                                  <span className="font-medium">{apple.ripeness?.ripeness_persian || apple.ripeness?.ripeness || 'نامشخص'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>وضعیت / Status:</span>
+                                  <span className="font-medium">{apple.health_status_persian || apple.health_status || 'نامشخص'}</span>
+                                </div>
+                                {apple.diseases && apple.diseases.length > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                                    <span className="text-red-500 font-medium">مشکلات:</span>
+                                    {apple.diseases.map((d, idx) => (
+                                      <div key={idx} className="text-red-400 text-xs ml-2">• {d.name_persian || d.name}</div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {analysisResult.apples.length > 10 && (
+                          <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-2 text-center`}>
+                            و {analysisResult.apples.length - 10} سیب دیگر...
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Disease Summary for Apples */}
+                    {analysisResult.disease_summary && Object.keys(analysisResult.disease_summary).length > 0 && (
+                      <div className={`${darkMode ? 'bg-red-900/20' : 'bg-red-50'} rounded-lg p-4 border ${darkMode ? 'border-red-700' : 'border-red-200'}`}>
+                        <h4 className={`text-sm font-semibold ${darkMode ? 'text-red-300' : 'text-red-700'} mb-3`}>بیماری‌های شناسایی شده / Detected Diseases</h4>
+                        <div className="space-y-2">
+                          {Object.entries(analysisResult.disease_summary).map(([disease, count]) => (
+                            <div key={disease} className={`flex justify-between items-center p-2 rounded ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
+                              <span className={`text-sm ${darkMode ? 'text-red-200' : 'text-red-800'}`}>{disease}</span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${darkMode ? 'bg-red-700 text-red-100' : 'bg-red-200 text-red-800'}`}>
+                                {count} سیب
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {/* Disease Summary */}
                 <div>

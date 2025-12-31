@@ -1159,6 +1159,21 @@ async def analyze_crop_custom(
 
 
 # =====================================================================
+# SIMPLE APPLE COUNTER
+# =====================================================================
+
+try:
+    from simple_apple_detector import SimpleAppleDetector
+    SIMPLE_DETECTOR_AVAILABLE = True
+    simple_apple_detector = SimpleAppleDetector()
+    print("✓ Simple apple detector initialized (apple counting)")
+except ImportError as e:
+    print(f"Warning: Simple apple detector not available: {e}")
+    SIMPLE_DETECTOR_AVAILABLE = False
+    simple_apple_detector = None
+
+
+# =====================================================================
 # SCIENTIFIC APPLE DETECTOR (Research-based)
 # =====================================================================
 
@@ -1296,6 +1311,272 @@ async def get_detection_methods():
         'methods': methods,
         'total': len(methods)
     }
+
+
+# =====================================================================
+# APPLE COUNTING ENDPOINT (YOLO + Comprehensive Analysis)
+# =====================================================================
+
+# Initialize dedicated apple counter model (uses COCO pretrained for fruit detection)
+try:
+    from ultralytics import YOLO
+    # Use YOLOv8x for maximum accuracy - COCO class 47 = apple
+    apple_counter_model = YOLO('yolov8x.pt')
+    APPLE_COUNTER_AVAILABLE = True
+    print("✓ Apple counter model initialized (YOLOv8x COCO)")
+except Exception as e:
+    print(f"Warning: Apple counter model not available: {e}")
+    APPLE_COUNTER_AVAILABLE = False
+    apple_counter_model = None
+
+# Initialize comprehensive apple health analyzer
+try:
+    from apple_health_analyzer import AppleHealthAnalyzer, apple_analyzer
+    APPLE_ANALYZER_AVAILABLE = True
+    print("✓ Apple health analyzer initialized (disease database)")
+except Exception as e:
+    print(f"Warning: Apple health analyzer not available: {e}")
+    APPLE_ANALYZER_AVAILABLE = False
+    apple_analyzer = None
+
+
+@app.post("/api/apple/count")
+async def count_apples(file: UploadFile = File(...)):
+    """
+    Count apples and perform comprehensive health analysis
+
+    شمارش سیب‌ها و تحلیل جامع سلامت هر سیب
+
+    Returns:
+        - total_apples: Total number of apples detected
+        - healthy_apples: Number of healthy apples
+        - unhealthy_apples: Number of unhealthy apples
+        - health_percentage: Overall health percentage
+        - apples: Detailed analysis of each apple including:
+            - Color (red/green/yellow)
+            - Diseases detected
+            - Health score
+            - Ripeness
+            - Recommendations
+        - visualization: Base64 encoded image with annotations
+    """
+    if not APPLE_COUNTER_AVAILABLE or apple_counter_model is None:
+        raise HTTPException(status_code=503, detail="Apple counter not available. Please install ultralytics.")
+
+    try:
+        # Read image
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+
+        # COCO class IDs for fruits we want to detect
+        FRUIT_CLASSES = [47, 49]  # 47 = apple, 49 = orange
+        APPLE_CLASS = 47
+
+        # Run YOLO detection with optimized parameters for counting
+        results = apple_counter_model(
+            image,
+            conf=0.15,           # Very low confidence to catch all apples
+            iou=0.3,             # Low IoU to prevent merging nearby apples
+            classes=FRUIT_CLASSES,  # Only detect fruits
+            imgsz=1280,          # Large image for better small object detection
+            max_det=500,         # Allow many detections
+            verbose=False
+        )
+
+        # Process detections
+        detections = []
+        for result in results:
+            boxes = result.boxes
+            for box in boxes:
+                cls_id = int(box.cls[0])
+                confidence = float(box.conf[0])
+                bbox = box.xyxy[0].cpu().numpy()
+
+                detections.append({
+                    'class_id': cls_id,
+                    'confidence': confidence,
+                    'bbox': bbox.tolist(),
+                    'is_apple': cls_id == APPLE_CLASS
+                })
+
+        total_apples = len(detections)
+        healthy_count = 0
+        unhealthy_count = 0
+        apples_detailed = []
+
+        vis_image = image.copy()
+
+        # Color mapping for visualization
+        color_map = {
+            'red': (0, 0, 255),
+            'green': (0, 255, 0),
+            'yellow': (0, 255, 255),
+            'mixed_red_green': (0, 128, 255),
+            'mixed_red_yellow': (0, 165, 255),
+            'unknown': (128, 128, 128)
+        }
+
+        for i, det in enumerate(detections):
+            bbox = det['bbox']
+            x1, y1, x2, y2 = map(int, bbox)
+            confidence = det['confidence']
+
+            # Extract apple region
+            apple_region = image[max(0, y1):min(image.shape[0], y2),
+                                 max(0, x1):min(image.shape[1], x2)]
+
+            # Perform comprehensive analysis
+            if APPLE_ANALYZER_AVAILABLE and apple_analyzer and apple_region.size > 0:
+                analysis = apple_analyzer.comprehensive_analysis(apple_region, apple_id=i+1)
+            else:
+                # Fallback simple analysis
+                analysis = {
+                    'apple_id': i + 1,
+                    'is_healthy': True,
+                    'health_score': 80.0,
+                    'health_status': 'good',
+                    'health_status_persian': 'خوب',
+                    'color': {'color_name': 'unknown', 'color_name_persian': 'نامشخص', 'percentages': {}},
+                    'diseases': [],
+                    'texture': {'texture_quality': 'unknown'},
+                    'ripeness': {'ripeness': 'unknown', 'ripeness_persian': 'نامشخص'},
+                    'recommendations': [],
+                    'recommendations_persian': []
+                }
+
+            # Update counts
+            if analysis['is_healthy']:
+                healthy_count += 1
+            else:
+                unhealthy_count += 1
+
+            # Get visualization color based on health
+            if analysis['health_score'] >= 80:
+                box_color = (0, 255, 0)  # Green - healthy
+            elif analysis['health_score'] >= 50:
+                box_color = (0, 255, 255)  # Yellow - fair
+            else:
+                box_color = (0, 0, 255)  # Red - poor
+
+            # Draw bounding box
+            cv2.rectangle(vis_image, (x1, y1), (x2, y2), box_color, 3)
+
+            # Create detailed label
+            color_name = analysis['color'].get('color_name', 'unknown')
+            health_score = analysis['health_score']
+            label = f"#{i+1} {color_name[:3].upper()} {health_score:.0f}%"
+
+            (label_w, label_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+            cv2.rectangle(vis_image, (x1, y1 - label_h - 8), (x1 + label_w + 6, y1), box_color, -1)
+            cv2.putText(vis_image, label, (x1 + 3, y1 - 4),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+            # Add to detailed results
+            area = (x2 - x1) * (y2 - y1)
+            apples_detailed.append({
+                'id': i + 1,
+                'bbox': [x1, y1, x2, y2],
+                'area': int(area),
+                'detection_confidence': float(confidence),
+                'is_healthy': bool(analysis['is_healthy']),  # Ensure native Python bool
+                'health_score': float(analysis['health_score']),
+                'health_status': analysis['health_status'],
+                'health_status_persian': analysis['health_status_persian'],
+                'color': analysis['color'],
+                'diseases': analysis.get('diseases', []),
+                'texture': analysis.get('texture', {}),
+                'ripeness': analysis.get('ripeness', {}),
+                'recommendations': analysis.get('recommendations', []),
+                'recommendations_persian': analysis.get('recommendations_persian', [])
+            })
+
+        # Calculate overall health
+        if total_apples > 0:
+            avg_health = sum(a['health_score'] for a in apples_detailed) / total_apples
+            health_percentage = (healthy_count / total_apples) * 100
+        else:
+            avg_health = 100
+            health_percentage = 100
+
+        # Get status text
+        if avg_health >= 90:
+            status_text = "Excellent - عالی"
+        elif avg_health >= 75:
+            status_text = "Good - خوب"
+        elif avg_health >= 50:
+            status_text = "Fair - متوسط"
+        elif avg_health >= 25:
+            status_text = "Poor - ضعیف"
+        else:
+            status_text = "Critical - بحرانی"
+
+        # Count by color
+        color_counts = {}
+        for apple in apples_detailed:
+            c = apple['color'].get('color_name', 'unknown')
+            color_counts[c] = color_counts.get(c, 0) + 1
+
+        # Disease summary
+        disease_summary = {}
+        for apple in apples_detailed:
+            for disease in apple.get('diseases', []):
+                d_name = disease.get('name', 'unknown')
+                disease_summary[d_name] = disease_summary.get(d_name, 0) + 1
+
+        # Add summary overlay to visualization
+        cv2.rectangle(vis_image, (10, 10), (320, 180), (0, 0, 0), -1)
+        cv2.rectangle(vis_image, (10, 10), (320, 180), (255, 255, 255), 2)
+
+        cv2.putText(vis_image, f"Total Apples: {total_apples}", (20, 35),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.putText(vis_image, f"Healthy: {healthy_count}", (20, 60),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        cv2.putText(vis_image, f"Unhealthy: {unhealthy_count}", (20, 85),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        cv2.putText(vis_image, f"Avg Health: {avg_health:.1f}%", (20, 110),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+        # Show color distribution
+        y_pos = 135
+        color_text = "Colors: "
+        for c, cnt in list(color_counts.items())[:3]:
+            color_text += f"{c[:3]}:{cnt} "
+        cv2.putText(vis_image, color_text[:35], (20, y_pos),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+
+        # Show diseases if any
+        if disease_summary:
+            y_pos += 25
+            disease_text = "Issues: " + ", ".join([f"{k[:6]}:{v}" for k, v in list(disease_summary.items())[:2]])
+            cv2.putText(vis_image, disease_text[:35], (20, y_pos),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100, 100, 255), 1)
+
+        # Encode visualization
+        _, buffer = cv2.imencode('.jpg', vis_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        vis_base64 = base64.b64encode(buffer).decode('utf-8')
+
+        return {
+            'status': 'success',
+            'total_apples': total_apples,
+            'healthy_apples': healthy_count,
+            'unhealthy_apples': unhealthy_count,
+            'health_percentage': float(health_percentage),
+            'average_health_score': float(avg_health),
+            'status_text': status_text,
+            'color_distribution': color_counts,
+            'disease_summary': disease_summary,
+            'apples': apples_detailed,
+            'visualization': vis_base64
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Apple counting failed: {str(e)}")
 
 
 # =====================================================================
