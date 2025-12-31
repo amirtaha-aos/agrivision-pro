@@ -191,10 +191,11 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
         };
       } else if (detectionMethod === 'apple_count') {
         // Convert apple counter response with detailed analysis
+        // Use health_percentage (% of healthy apples) for overall_health display
         normalizedData = {
           ...data,
           report: {
-            overall_health: data.average_health_score || data.health_percentage || 0,
+            overall_health: data.health_percentage || 0,
             status: data.status_text || 'Unknown',
             disease_summary: {
               'healthy': data.healthy_apples || 0,
@@ -207,7 +208,7 @@ const CropHealthMonitor = ({ darkMode = false, t = (key) => key }) => {
           apples: data.apples || [],
           color_distribution: data.color_distribution || {},
           disease_summary: data.disease_summary || {},
-          average_health_score: data.average_health_score || data.health_percentage || 0,
+          average_health_score: data.average_health_score || 0,
           visualization: data.visualization
         };
       }
